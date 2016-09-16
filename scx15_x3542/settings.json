@@ -1,0 +1,11 @@
+{
+   "device.storage.writable.name": "sdcard0",
+   "tethering.usb.ip": "192.168.42.129",
+   "tethering.usb.prefix": "24",
+   "tethering.usb.dhcpserver.startip": "192.168.42.2",
+   "tethering.usb.dhcpserver.endip": "192.168.42.254",
+   "tethering.wifi.ip": "192.168.42.129",
+   "tethering.wifi.prefix": "24",
+   "tethering.wifi.dhcpserver.startip": "192.168.42.2",
+   "tethering.wifi.dhcpserver.endip": "192.168.42.254"
+}

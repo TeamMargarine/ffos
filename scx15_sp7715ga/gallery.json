@@ -1,0 +1,9 @@
+{
+   "maxImagePixelSize": 5242880,
+   "maxSnapshotPixelSize": 5242880,
+   "maxPickPixelSize": 0,
+   "maxEditPixelSize": 0,
+   "maxImageFileSize": 6291456,
+   "maxUnknownImageFileSize": 524288,
+   "maxGifImageFileSize": 1048576
+}
