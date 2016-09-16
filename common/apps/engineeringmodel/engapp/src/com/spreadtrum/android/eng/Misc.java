@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.CheckBoxPreference;
@@ -18,6 +19,7 @@ import android.preference.PreferenceScreen;
 import android.util.Log;
 import android.widget.Toast;
 public class Misc extends PreferenceActivity {
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String TAG = "Misc";
     private engfetch mEf;
     private static final int MEM_STOP = 1;
@@ -30,7 +32,7 @@ public class Misc extends PreferenceActivity {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-        	Log.d(TAG, "receiver : device storage lower !");
+        	if(DEBUG) Log.d(TAG, "receiver : device storage lower !");
             mHandler.removeMessages(1);
             mHandler.sendEmptyMessage(1);
         }

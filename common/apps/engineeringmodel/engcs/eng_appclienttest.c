@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	if (chdir("/") < 0)
 		ENG_LOG("%s: engclient can't change directory to /", __FILE__);	
 */
-	eng_appctest();
+//	eng_appctest();
 
 	return 0;	
 }

@@ -18,20 +18,6 @@ VLX=$3
 OUTDIR=$4
 JOBS=$5
 
-FLIST='
-fdl1.bin
-fdl2.bin
-u-boot-spl-16k.bin
-u-boot.bin
-u-boot_autopoweron.bin
-boot.img
-system.img
-userdata.img
-recovery.img
-cache.img
-installed-files.txt
-'
-
 LOG=$OUTDIR/$PROD-$VAR-$VLX.build.log
 PAK=$OUTDIR/$PROD-$VAR-$VLX.tar.gz
 
@@ -60,7 +46,7 @@ make clean >>/dev/null 2>&1
 
 # do make
 kheader >>$LOG 2>&1
-make $JOBS >>$LOG 2>&1
+make KALLSYMS_EXTRA_PASS=1 $JOBS >>$LOG 2>&1
 # failure handle
 if [ $? -ne 0 ]; then
 	echo "==== ====" >> $LOG
@@ -72,7 +58,7 @@ fi
 
 cd $ANDROID_PRODUCT_OUT
 cp obj/KERNEL/vmlinux symbols/
-tar zcf $PAK $FLIST 2>/dev/null
+find . -name "*.img" -o -name "*.bin" -o -name "installed-files.txt" -maxdepth 1| xargs tar -zcf $PAK 2>/dev/null
 cd -
 
 echo "==== ====" >> $LOG

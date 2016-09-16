@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -14,11 +15,11 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.text.method.NumberKeyListener;
 import android.util.Log;
-import android.view.Gravity;
 import android.widget.Toast;
 
 public class aocsettings extends PreferenceActivity 
 implements Preference.OnPreferenceChangeListener{
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String LOG_TAG = "aocsettings";
 	private static final String KEY_AOCACT= "aoc_active";
 	private static final String KEY_AOCSET = "aoc_setting";
@@ -78,17 +79,23 @@ implements Preference.OnPreferenceChangeListener{
 		public void handleMessage(Message msg) {
 			ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
 			DataOutputStream outputBufferStream = new DataOutputStream(outputBuffer);
-			Log.d(LOG_TAG, "engopen sockid=" + sockid);
+			if(DEBUG) Log.d(LOG_TAG, "engopen sockid=" + sockid);
 
 			try {
 				switch (msg.what) {
 				case engconstents.ENG_AT_CAOC:
 				case engconstents.ENG_AT_CAOCD:
 				case engconstents.ENG_AT_CAOCQ:
-					outputBufferStream.writeBytes(String.format("%d,%d",msg.what, 0));
+    /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+                    //outputBufferStream.writeBytes(String.format("%d,%d",msg.what, 0));
+                    outputBufferStream.writeBytes(new StringBuilder().append(msg.what)
+                            .append(",").append(0).toString());
 					break;
 				case engconstents.ENG_AT_CAMM:
-					outputBufferStream.writeBytes(String.format("%d,%d,%s,%s",msg.what, 2, strInput, PIN2));
+                    //outputBufferStream.writeBytes(String.format("%d,%d,%s,%s",msg.what, 2, strInput, PIN2));
+                    outputBufferStream.writeBytes(new StringBuilder().append(msg.what)
+                            .append(",").append(2).append(",").append(strInput).append(",").append(PIN2).toString());
+     /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 					break;
 				default:return;
 				}
@@ -102,7 +109,7 @@ implements Preference.OnPreferenceChangeListener{
 			byte[] inputBytes = new byte[dataSize];
 			int showlen = mEf.engread(sockid, inputBytes, dataSize);
 			String str1 = new String(inputBytes, 0, showlen);
-			Log.d(LOG_TAG, "AT = " + msg.what + ";return = " + str1);
+			if(DEBUG) Log.d(LOG_TAG, "AT = " + msg.what + ";return = " + str1);
 			if (str1.equals("OK")) {
 				DisplayToast("Set Success.");
 			} else if (str1.equals("ERROR")) {
@@ -115,11 +122,13 @@ implements Preference.OnPreferenceChangeListener{
 		}
 	}
 
-	private void DisplayToast(String str) {
-		Toast mToast = Toast.makeText(this, str, Toast.LENGTH_SHORT);
-		mToast.setGravity(Gravity.TOP, 0, 100);
-		mToast.show();
-	}
+    private void DisplayToast(String str) {
+        Toast mToast = Toast.makeText(this, str, Toast.LENGTH_SHORT);
+        /*Delete 20130228 Spreadst of 130815 set the toast location as the default start*/
+        //mToast.setGravity(Gravity.TOP, 0, 100);
+        /*Delete 20130228 Spreadst of 130815 set the toast location as the default end  */
+        mToast.show();
+    }
 
 	public boolean onPreferenceChange(Preference preference, Object newValue) {
 		// TODO Auto-generated method stub

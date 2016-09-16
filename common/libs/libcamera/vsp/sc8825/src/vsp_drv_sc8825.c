@@ -126,7 +126,7 @@ PUBLIC void close_vsp_iram (void)
 {
 	uint32 cmd;
 	
-//	cmd = (0<<4) | (1<<3);	
+//	cmd = (0<<4) | (1<<3);
 	cmd = VSP_READ_REG(VSP_DCAM_REG_BASE+DCAM_CFG_OFF, "VSP_RESET_ADDR: Read the vsp reset");
 	cmd = (cmd & ~0x10) | (1 << 3);
 	VSP_WRITE_REG(VSP_DCAM_REG_BASE+DCAM_CFG_OFF, cmd, "DCAM_CFG: configure DCAM register");

@@ -76,7 +76,7 @@ static int get_snd_card_name(int card, char *name)
     sprintf(control, SND_FILE_CONTROL, card);
 
     fd = open(control, O_RDONLY);
-    if (fd <= 0) {
+    if (fd < 0) {
         ALOGE("open snd control failed.");
         return -1;
     }

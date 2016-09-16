@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include <stdlib.h>
 #include "cmr_common.h"
 #include "cmr_msg.h"
 
-#define MSG_CHECK_MSG_MAGIC(handle)           \
-		do {                                                         \
+#define MSG_CHECK_MSG_MAGIC(handle)                                                  \
+		do {                                                                         \
 		    if (((struct cmr_msg_cxt*)handle)->msg_magic != CMR_MSG_MAGIC_CODE) {    \
-				CMR_LOGE("MSG magic check un correct!!");                             \
-				return CMR_MSG_INVALID_HANDLE;                                        \
-			}                                                                    \
+				CMR_LOGE("MSG magic check un correct!!");                            \
+				return CMR_MSG_INVALID_HANDLE;                                       \
+			}                                                                        \
 		} while(0)
 
 

@@ -11,6 +11,8 @@
  *          add set support, polish the help info
  * 2012.11.16 v05 fool2
  *          add sc8825 (tiger) a-die regs access
+ * 2013.4.1 v06 fool2
+ *          add sc7710g /sc8830(shark) a-die regs access
  */
 
 #define LOG_NDEBUG 0
@@ -28,7 +30,8 @@
 #include <getopt.h>
 
 #define MAPSIZE (4096)
-unsigned int ana_reg_addr_start = 0, ana_reg_addr_end = 0;
+unsigned int ana_max_size = 4096;
+unsigned int ana_reg_addr_start = 0x42000000, ana_reg_addr_end = 0;
 #define IS_ANA_ADDR(_a) (_a>=ana_reg_addr_start && _a<=ana_reg_addr_end)
 
 #define ADI_ARM_RD_CMD(b) (b+0x24)
@@ -182,19 +185,19 @@ int chip_probe(void)
     chip_id = *((unsigned int *)(vbase+0x3fc));
     chip_id >>= 16;
 
-    if (chip_id == 0x8810) {
+    if (chip_id == 0x8810 || chip_id == 0x7710) {
         ana_reg_addr_start = 0x82000040;
     }
-    else if (chip_id == 0x8820) {
+    else if (chip_id == 0x8820 || chip_id == 0x8830) {/* tiger, shark...*/
         ana_reg_addr_start = 0x42000040;
     }
     else {
         perror("unknown chip!");
-        exit(EXIT_FAILURE);
+//        exit(EXIT_FAILURE);
     }
 
-    /* each adi frame only contain 9 bits address */
-    ana_reg_addr_end = (ana_reg_addr_start & ~(MAPSIZE - 1)) + 0x7fc;
+    /* each adi frame only contain 9~10 bits address */
+    ana_reg_addr_end = (ana_reg_addr_start & ~(MAPSIZE - 1)) + ana_max_size;
 
     if (munmap(vbase, 4096) == -1) {
         perror("munmap failed!");

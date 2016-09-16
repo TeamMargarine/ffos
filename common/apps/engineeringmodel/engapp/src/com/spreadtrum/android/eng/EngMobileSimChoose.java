@@ -20,6 +20,8 @@ public class EngMobileSimChoose extends PreferenceActivity {
     private Preference mSim2Pref;
     private Preference mOtherPref;
 
+    private static final String SUB_ID = "sub_id";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,15 +64,14 @@ public class EngMobileSimChoose extends PreferenceActivity {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.setComponent(new ComponentName(getIntent().getStringExtra(EngMobileSimChoose.PACKAGE_NAME),
                                               getIntent().getStringExtra(EngMobileSimChoose.CLASS_NAME)));
-        // if (preference == mSim1Pref) {
-        // intent.putExtra(WirelessSettings.SUB_ID, 0);
-        // } else if (preference == mSim2Pref) {
-        // intent.putExtra(WirelessSettings.SUB_ID, 1);
-        // } else if (preference == mOtherPref) {
-        // intent.setComponent(new
-        // ComponentName(getIntent().getStringExtra(MobileSimChoose.PACKAGE_NAME),
-        // getIntent().getStringExtra(MobileSimChoose.CLASS_NAME_OTHER)));
-        // }
+        /**modify 146311 add sub_id start */
+        if (preference == mSim1Pref) {
+            intent.putExtra(SUB_ID, 0);
+        } else if (preference == mSim2Pref) {
+            intent.putExtra(SUB_ID, 1);
+        } else if (preference == mOtherPref) {
+        }
+        /**modify 146311 add sub_id end */
         startActivity(intent);
         return true;
     }

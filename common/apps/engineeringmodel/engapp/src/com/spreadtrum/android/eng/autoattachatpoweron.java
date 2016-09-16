@@ -1,20 +1,23 @@
 package com.spreadtrum.android.eng;
 
-import android.util.Log;
-import android.widget.Toast;
-import android.os.Bundle;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+
+import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.preference.CheckBoxPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.util.Log;
+import android.widget.Toast;
 
 public class autoattachatpoweron extends PreferenceActivity 
 implements Preference.OnPreferenceChangeListener{
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String LOG_TAG = "autoattachatpoweron";
 	private int sockid = 0;
 	private engfetch mEf;
@@ -60,11 +63,15 @@ implements Preference.OnPreferenceChangeListener{
 				ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
 				DataOutputStream outputBufferStream = new DataOutputStream(outputBuffer);
 
-				Log.e(LOG_TAG, "engopen sockid=" + sockid);
+				if(DEBUG) Log.d(LOG_TAG, "engopen sockid=" + sockid);
 				if(hasPara)
-				str=String.format("%d,%d,%d", msg.what, 1, onoroff);
+ /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+            //   str=String.format("%d,%d,%d", msg.what, 1, onoroff);
+                str=new StringBuilder().append(msg.what).append(",").append(1).append(",").append(onoroff).toString();
 				else
-				str=String.format("%d,%d", msg.what,0);
+            //    str=String.format("%d,%d", msg.what,0);
+                str=new StringBuilder().append(msg.what).append(",").append(0).toString();
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 				try {
 				outputBufferStream.writeBytes(str);
 				} catch (IOException e) {
@@ -77,7 +84,7 @@ implements Preference.OnPreferenceChangeListener{
 				byte[] inputBytes = new byte[dataSize];
 				int showlen= mEf.engread(sockid,inputBytes,dataSize);
 				String str1 =new String(inputBytes,0,showlen); 
-				Log.e(LOG_TAG, "str1=" + str1);
+				if(DEBUG) Log.d(LOG_TAG, "str1=" + str1);
 				if(str1.equals("0")){
 					mCheckBoxPreference.setChecked(false);
 					onoroff = 1;	

@@ -1,12 +1,14 @@
 package com.spreadtrum.android.eng;
 
 import android.app.Activity;
-import android.widget.TextView;
 import android.os.Bundle;
-import android.webkit.WebView;
+import android.os.Debug;
 import android.util.Log;
+import android.webkit.WebView;
+import android.widget.TextView;
 
 public class uaagent extends Activity {
+    private static final boolean DEBUG = Debug.isDebug();
     private static final String LOG_TAG = "uaagent";
     private TextView tv = null;
     private WebView mWebView = null;
@@ -16,7 +18,7 @@ public class uaagent extends Activity {
         tv = (TextView)findViewById(R.id.uaagent);
         mWebView = new WebView(this);
         String mUserAgent =mWebView.getSettings().getUserAgentString();
-        Log.d(LOG_TAG, "UserAgent is <"+mUserAgent+">");
+        if(DEBUG) Log.d(LOG_TAG, "UserAgent is <"+mUserAgent+">");
         tv.setText(mUserAgent);
     }
 }

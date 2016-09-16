@@ -1,21 +1,23 @@
 package com.spreadtrum.android.eng;
 
-import android.app.Activity;
-import android.util.Log;
-import android.widget.EditText;
-import android.widget.TextView;
-import android.os.Bundle;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import android.util.Log;
+import java.nio.charset.Charset;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.widget.Button;
+import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 
 public class lockcell extends Activity {
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String LOG_TAG = "engnetinfo";
 	private int sockid = 0;
 	private engfetch mEf;
@@ -85,8 +87,11 @@ public class lockcell extends Activity {
 					ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
 					DataOutputStream outputBufferStream = new DataOutputStream(outputBuffer);
 
-					Log.e(LOG_TAG, "engopen sockid=" + sockid);
-					str=String.format("%d,%d", msg.what,0,0);
+					if(DEBUG) Log.d(LOG_TAG, "engopen sockid=" + sockid);
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+                    //str=String.format("%d,%d", msg.what,0,0);
+                    str=new StringBuilder().append(msg.what).append(",").append(0).toString();
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 					try {
 					outputBufferStream.writeBytes(str);
 					} catch (IOException e) {
@@ -97,7 +102,7 @@ public class lockcell extends Activity {
 					int dataSize = 128;
 					byte[] inputBytes = new byte[dataSize];
 					int showlen= mEf.engread(sockid,inputBytes,dataSize);
-					String str =new String(inputBytes,0,showlen); 
+					String str =new String(inputBytes,0,showlen,Charset.defaultCharset());
 					ss = str.split(","); 
 					for(int i=0;i<ss.length;i++){
 					mET[i].setText(ss[i]);

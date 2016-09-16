@@ -6,6 +6,7 @@ import android.util.Log;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RadioGroup.OnCheckedChangeListener;
+import android.widget.Toast;
 
 public class VideoType extends Activity{
 
@@ -59,25 +60,37 @@ public class VideoType extends Activity{
 		}
 	}
 
-	private OnCheckedChangeListener mListener = new OnCheckedChangeListener() {
-		@Override
-		public void onCheckedChanged(RadioGroup group, int checkedId) {
-			switch(checkedId){
-			case R.id.radio1:
-				setValues(1);
-				break;
-			case R.id.radio2:
-				setValues(2);
-				break;
-			case R.id.radio3:
-				setValues(3);
-				break;
-			case R.id.radio4:
-				setValues(4);
-				break;
-			}
-		}
-	};
+    private OnCheckedChangeListener mListener = new OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(RadioGroup group, int checkedId) {
+            switch (checkedId) {
+                /* Add 20130228 Spreadst of 130830 add toast start */
+                case R.id.radio1:
+                    if (System.getProperty(KEY) != null) {
+                        Toast.makeText(VideoType.this, "select H263 Prefer successful",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    setValues(1);
+                    break;
+                case R.id.radio2:
+                    Toast.makeText(VideoType.this, "select MPEG4 Prefer successful",
+                            Toast.LENGTH_SHORT).show();
+                    setValues(2);
+                    break;
+                case R.id.radio3:
+                    Toast.makeText(VideoType.this, "select H263 Only successful",
+                            Toast.LENGTH_SHORT).show();
+                    setValues(3);
+                    break;
+                case R.id.radio4:
+                    Toast.makeText(VideoType.this, "select MPEG4 Only successful",
+                            Toast.LENGTH_SHORT).show();
+                    setValues(4);
+                    break;
+            }
+            /* Add 20130228 Spreadst of 130830 add toast end */
+        }
+    };
 
 	private void setValues(int value){
 		String v = String.valueOf(value);
@@ -90,7 +103,7 @@ public class VideoType extends Activity{
 		try{
 			value = Integer.valueOf(v);
 		}catch (Exception e) {
-			Log.d(TAG, "Pase " + v + " to Integer Error !");
+			Log.e(TAG, "Pase " + v + " to Integer Error !");
 		}
 		return value;
 	}

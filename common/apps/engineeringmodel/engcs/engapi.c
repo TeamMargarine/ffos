@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "engopt.h"
 #include "engapi.h"
 #include "eng_modemclient.h"
@@ -5,12 +6,23 @@
 #include "engat.h"
 #include <pthread.h>
 #include "engphasecheck.h"
+#include <cutils/properties.h>
 
 int engapi_open(int type)
 {
-	int fd = 0;
-	
-	fd = eng_at_open(type);
+	int fd;
+	char modemtype[8];
+	int modemw;
+
+	memset(modemtype, 0, sizeof(modemtype));
+	property_get("ro.modem.w.enable", modemtype, "0");
+	modemw = atoi(modemtype);
+
+	if (modemw){
+		fd = eng_at_open("engw",type);
+	}else{
+		fd = eng_at_open("engtd",type);
+	}
 
 	return fd;
 }

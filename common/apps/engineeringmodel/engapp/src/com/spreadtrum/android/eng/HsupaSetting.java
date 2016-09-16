@@ -3,8 +3,10 @@ package com.spreadtrum.android.eng;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -16,7 +18,8 @@ import android.util.Log;
 import android.widget.Toast;
 
 public class HsupaSetting extends PreferenceActivity implements Preference.OnPreferenceChangeListener{
-	private static final String TAG = "HsupaSetting";
+    private static final boolean DEBUG = Debug.isDebug();
+    private static final String TAG = "HsupaSetting";
 	private static final String KEY = "hsupa_setting";
 	private int sockid = 0;
 	private engfetch mEf;
@@ -57,19 +60,24 @@ public class HsupaSetting extends PreferenceActivity implements Preference.OnPre
 		public void handleMessage(Message msg) {
 			ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
 			DataOutputStream outputBufferStream = new DataOutputStream(outputBuffer);
-			Log.e(TAG, "engopen sockid=" + sockid);
+			if(DEBUG) Log.d(TAG, "engopen sockid=" + sockid);
 			String str;
 			switch (msg.what) {
 			case QUERY: {
-				str = String.format("%d,%d",engconstents.ENG_AT_SPENGMD_QUERY,0);
+   /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+            //str = String.format("%d,%d",engconstents.ENG_AT_SPENGMD_QUERY,0);
+                str = new StringBuilder().append(engconstents.ENG_AT_SPENGMD_QUERY).append(",").append(0).toString();
 				break;
 			}
 			case OPEN: {
-				str = String.format("%d,%d",engconstents.ENG_AT_SPENGMD_OPEN,0);
+                //str = String.format("%d,%d",engconstents.ENG_AT_SPENGMD_OPEN,0);
+                str = new StringBuilder().append(engconstents.ENG_AT_SPENGMD_OPEN).append(",").append(0).toString();
 				break;
 			}
 			case CLOSE: {
-				str = String.format("%d,%d",engconstents.ENG_AT_SPENGMD_CLOSE,0);
+                //str = String.format("%d,%d",engconstents.ENG_AT_SPENGMD_CLOSE,0);
+                str = new StringBuilder().append(engconstents.ENG_AT_SPENGMD_OPEN).append(",").append(0).toString();
+   /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 				break;
 			}
 			default: {
@@ -87,8 +95,8 @@ public class HsupaSetting extends PreferenceActivity implements Preference.OnPre
 			int dataSize = 128;
 			byte[] inputBytes = new byte[dataSize];
 			int showlen = mEf.engread(sockid, inputBytes, dataSize);
-			String str1 = new String(inputBytes, 0, showlen);
-			Log.e(TAG, "str1=" + str1);
+			String str1 = new String(inputBytes, 0, showlen,Charset.defaultCharset());
+			if(DEBUG) Log.d(TAG, "str1=" + str1);
 			if (str1.equals("1")) {
 				setChecked(false);
 			} else if (str1.equals("3")) {

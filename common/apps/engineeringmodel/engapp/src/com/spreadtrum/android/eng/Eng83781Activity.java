@@ -1,16 +1,18 @@
 package com.spreadtrum.android.eng;
 
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
+import android.content.Intent;
 import android.os.Bundle;
+import android.os.Debug;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
-import android.util.Log;
-import android.content.ActivityNotFoundException;
-import android.content.Intent;
-import android.content.ComponentName;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 
 public class Eng83781Activity extends PreferenceActivity {
+    private static final boolean DEBUG = Debug.isDebug();
     private static final String TAG = "Eng83781Activity&EngMobileSimChoose";
     private static final String KEY_GPRS = "key_gprs";
     private Preference mSerialPref;
@@ -27,7 +29,7 @@ public class Eng83781Activity extends PreferenceActivity {
                     public boolean onPreferenceClick(Preference preference) {
                         Intent intent = new Intent(Intent.ACTION_MAIN);
                         if (TelephonyManager.isMultiSim()) {
-                            Log.e("TAG","TelephonyManager is MultiSim========================");
+                            if(DEBUG) Log.d("TAG","TelephonyManager is MultiSim========================");
                             intent.setComponent(new ComponentName(
                                     "com.spreadtrum.android.eng",
                                     "com.spreadtrum.android.eng.EngMobileSimChoose"));
@@ -36,7 +38,7 @@ public class Eng83781Activity extends PreferenceActivity {
                             intent.putExtra(EngMobileSimChoose.CLASS_NAME,
                                     "com.android.phone.Settings");
                         } else {
-                            Log.e("TAG","TelephonyManager is  single Sim========================");
+                            if(DEBUG) Log.d("TAG","TelephonyManager is  single Sim========================");
                             intent.setComponent(new ComponentName(
                                     "com.android.phone",
                                     "com.android.phone.Settings"));

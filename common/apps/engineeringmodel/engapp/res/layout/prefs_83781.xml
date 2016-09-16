@@ -124,11 +124,16 @@
                 Browser log   浏览器的log开关
 
 	-->
-    <PreferenceScreen android:title="App Settings" android:summary="App Settings">
-		<intent android:action="android.intent.action.MAIN"
-		android:targetPackage="com.spreadtrum.android.eng"
-		android:targetClass="com.spreadtrum.android.eng.AppSettings"/>
-	</PreferenceScreen>
+
+    <!-- Modify 20130320 Spreadst of 140026 remove the summary start -->
+    <!-- <PreferenceScreen android:title="App Settings" android:summary="App Settings"> -->
+    <PreferenceScreen android:title="App Settings" >
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetClass="com.spreadtrum.android.eng.AppSettings"
+            android:targetPackage="com.spreadtrum.android.eng" />
+    </PreferenceScreen>
+    <!-- Modify 20130320 Spreadst of 140026 remove the summary end -->
 
 
 	<!--  10). IQ Mode -->
@@ -226,5 +231,13 @@
     </Preference>
     <!-- Add 20130109 spreadst of 112858 no phoneinfo item end -->
 	<!-- added Phone info end-->
+
+<!-- added set imei start -->
+    <Preference android:key="set_imei" android:title="Add IMEI">
+        <intent android:action="android.intent.action.MAIN"
+            android:targetPackage="com.spreadtrum.android.eng"
+            android:targetClass="com.spreadtrum.android.eng.SetIMEI" />
+    </Preference>
+    <!-- added set imei end-->
 
 </PreferenceScreen>

@@ -60,6 +60,10 @@ typedef struct jpegenc_params
 	uint32_t set_slice_height;
 	void *yuv_virt_buf;
 	uint32_t yuv_phy_buf;
+
+	void *pang_yuv_virt_buf;
+	uint32_t pang_yuv_phy_buf;
+
 	void *stream_virt_buf[2];
 	uint32_t stream_phy_buf[2];	
 	uint32_t stream_buf_len;

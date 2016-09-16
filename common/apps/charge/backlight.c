@@ -5,8 +5,8 @@
 #include <errno.h>
 #include "common.h"
 
-#define LCD_BACKLIGHT_DEV			"/sys/devices/platform/lcd-backlight/leds/lcd-backlight/brightness"
-#define LCD_BACKLIGHT_MAX_DEV		"/sys/devices/platform/lcd-backlight/leds/lcd-backlight/max_brightness"
+#define LCD_BACKLIGHT_DEV			"/sys/class/backlight/sprd_backlight/brightness"
+#define LCD_BACKLIGHT_MAX_DEV		"/sys/class/backlight/sprd_backlight/max_brightness"
 /* TODO fix the following definition to control keyboard backlight 
  * then add HAVE_KEYBOARD_BACKLIGHT in BoardConfig.mk to enable them
  * */
@@ -27,7 +27,7 @@ static int eng_lcdbacklight_test(int brightness)
 
 	fd = open(LCD_BACKLIGHT_DEV, O_RDWR);
 
-	if(fd < -1) {
+	if(fd < 0) {
 		SPRD_DBG("%s: open %s fail",__func__, LCD_BACKLIGHT_DEV);
 		return -1;
 	}
@@ -48,7 +48,7 @@ static int eng_lcdbacklight_get(void)
 
 	fd = open(LCD_BACKLIGHT_DEV, O_RDWR);
 
-	if(fd < -1) {
+	if(fd < 0) {
 		SPRD_DBG("%s: open %s fail",__func__, LCD_BACKLIGHT_DEV);
 		return -1;
 	}
@@ -74,7 +74,7 @@ static int eng_keybacklight_test(int brightness)
 
 	fd = open(KEY_BACKLIGHT_DEV, O_RDWR);
 
-	if(fd < -1) {
+	if(fd < 0) {
 		SPRD_DBG("%s: open %s fail",__func__, KEY_BACKLIGHT_DEV);
 		return -1;
 	}
@@ -95,7 +95,7 @@ static int eng_keybacklight_get(void)
 
 	fd = open(KEY_BACKLIGHT_DEV, O_RDWR);
 
-	if(fd < -1) {
+	if(fd < 0) {
 		SPRD_DBG("%s: open %s fail",__func__, LCD_BACKLIGHT_DEV);
 		return -1;
 	}

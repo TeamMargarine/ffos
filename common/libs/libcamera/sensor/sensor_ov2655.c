@@ -1,19 +1,15 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2012 Spreadtrum Communications Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
-
 #include "sensor.h"
 /**---------------------------------------------------------------------------*
  ** 						   Macro Define
@@ -484,7 +480,12 @@ LOCAL SENSOR_IOCTL_FUNC_TAB_T s_OV2655_ioctl_func_tab = {
 	PNULL,  //meter_mode
 	PNULL, //get_status
 	PNULL,
+#ifdef CONFIG_CAMERA_SENSOR_NEW_FEATURE
+	PNULL,
 	PNULL
+#else
+	PNULL
+#endif
 };
 
 /**---------------------------------------------------------------------------*
@@ -559,7 +560,8 @@ SENSOR_INFO_T g_OV2655_yuv_info = {
 	0,			// threshold mode
 	0,			// threshold start postion
 	0,			// threshold end postion
-	-1			// i2c_dev_handler
+	0,			// i2c_dev_handler
+	{0, 2, 8, 1}
 };
 
 /**---------------------------------------------------------------------------*
@@ -963,9 +965,14 @@ LOCAL void OV2655_CalculateExposureGain(SENSOR_MODE_E sensor_preview_mode,
 
 LOCAL uint32_t OV2655_BeforeSnapshot(uint32_t param)
 {
-	uint32_t preview_mode = (param >= SENSOR_MODE_PREVIEW_TWO) ?
-	    SENSOR_MODE_PREVIEW_TWO : SENSOR_MODE_PREVIEW_ONE;
+	uint32_t preview_mode;
+	uint32_t cap_mode = (param>>CAP_MODE_BITS);
 
+	param = param&0xffff;
+	SENSOR_PRINT("%d,%d.",cap_mode,param);
+
+	preview_mode = (param >= SENSOR_MODE_PREVIEW_TWO) ?
+	    SENSOR_MODE_PREVIEW_TWO : SENSOR_MODE_PREVIEW_ONE;
 	OV2655_CalculateExposureGain(preview_mode, param);
 	return 0;
 }

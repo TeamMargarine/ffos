@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "cmr_mem.h"
 #include "cmr_oem.h"
 #include <unistd.h>
@@ -91,9 +90,9 @@ static const struct cap_size_to_mem back_cam_raw_mem_size_tab[IMG_SIZE_NUM] = {
 };
 #else
 static const struct cap_size_to_mem back_cam_mem_size_tab[IMG_SIZE_NUM] = {
-	{PIXEL_1P3_MEGA, (4 << 20),  (0 << 20)},
-	{PIXEL_2P0_MEGA, (5 << 20),  (0 << 20)},
-	{PIXEL_3P0_MEGA, (9 << 20),  (0 << 20)},
+	{PIXEL_1P3_MEGA, (5 << 20),  (0 << 20)},
+	{PIXEL_2P0_MEGA, (7 << 20),  (0 << 20)},
+	{PIXEL_3P0_MEGA, (10 << 20),  (0 << 20)},
 	{PIXEL_5P0_MEGA, (16 << 20), (0 << 20)},
 	{PIXEL_8P0_MEGA, (16 << 20), (8 << 20)},
 };

@@ -13,10 +13,6 @@ endif
 ifeq ($(PLATFORM_VERSION),2.3.5)
 LOCAL_CFLAGS += -DSLOG_BTLOG_235
 endif
-ifeq ($(BOARD_HAVE_BLUETOOTH_TROUT),true)
-LOCAL_CFLAGS += -DBT_TROUT
-endif
-
 LOCAL_LDLIBS += -lpthread
 LOCAL_C_INCLUDES += external/jpeg external/zlib
 LOCAL_SHARED_LIBRARIES := liblog libz libjpeg

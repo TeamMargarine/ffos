@@ -1,29 +1,22 @@
 package com.spreadtrum.android.eng;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemProperties;
 import android.util.Log;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.View.OnClickListener;
-import android.view.View.OnFocusChangeListener;
+import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.Toast;
 
 public class BtEUT extends Activity implements OnClickListener{
-
+    private static final boolean DEBUG = Debug.isDebug();
 	public static final String TAG = "BtEUT";
 	public static final int START_BT = 1;
 	public static final int STOP_BT = 2;
@@ -35,7 +28,7 @@ public class BtEUT extends Activity implements OnClickListener{
 
 	private AlertDialog dialog;
 	private ProgressDialog progressDialog;
-	private String notnum = " is not a num";
+	//private String notnum = " is not a num";
 	private String title = "Test Result";
 	private boolean mHaveFinish = true;
 
@@ -54,7 +47,7 @@ public class BtEUT extends Activity implements OnClickListener{
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		
+		SystemProperties.set("ctl.start", "enghardwaretest");
 	}
 
 	private void initui() {
@@ -141,6 +134,7 @@ public class BtEUT extends Activity implements OnClickListener{
 	protected void onDestroy() {
 		deinitTestNoUi();
 		super.onDestroy();
+		SystemProperties.set("ctl.stop", "enghardwaretest");
 	}
 
 	private void showMessage(String msg) {
@@ -149,7 +143,7 @@ public class BtEUT extends Activity implements OnClickListener{
 
 	private void showDialog(String msg, String title) {
 		if(mHaveFinish){
-			Log.d(TAG, "activity have finished !");
+			if(DEBUG) Log.d(TAG, "activity have finished !");
 			return;
 		}
 		AlertDialog.Builder builder = new AlertDialog.Builder(BtEUT.this);

@@ -1,20 +1,23 @@
 package com.spreadtrum.android.eng;
 
-import android.util.Log;
-import android.widget.Toast;
-import android.os.Bundle;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+
+import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.preference.CheckBoxPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.util.Log;
+import android.widget.Toast;
 
 public class pdpactive extends PreferenceActivity 
 implements Preference.OnPreferenceChangeListener{
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String LOG_TAG = "pdpact";
 	private int sockid = 0;
 	private engfetch mEf;
@@ -57,13 +60,17 @@ implements Preference.OnPreferenceChangeListener{
 				ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
 				DataOutputStream outputBufferStream = new DataOutputStream(outputBuffer);
 
-				Log.e(LOG_TAG, "engopen sockid=" + sockid);
-				str=String.format("%d,%d,%d,%d", msg.what,2,active,1);
-				Log.e(LOG_TAG, "str=" + str);
+				if(DEBUG) Log.d(LOG_TAG, "engopen sockid=" + sockid);
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+                //str=String.format("%d,%d,%d,%d", msg.what,2,active,1);
+                str = new StringBuilder().append(msg.what).append(",").append(2).append(",")
+                      .append(active).append(",").append(1).toString();
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
+                if(DEBUG) Log.d(LOG_TAG, "str=" + str);
 				try {
 				outputBufferStream.writeBytes(str);
 				} catch (IOException e) {
-				Log.e(LOG_TAG, "writebytes error");
+				if(DEBUG) Log.d(LOG_TAG, "writebytes error");
 				return;
 				}
 				mEf.engwrite(sockid,outputBuffer.toByteArray(),outputBuffer.toByteArray().length);

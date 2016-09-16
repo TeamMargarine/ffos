@@ -1,4 +1,0 @@
-PA_BASE = 0x8000
-HW_ID = PA_BASE + 0x38
-HW_STA =PA_BASE + 0x18
-

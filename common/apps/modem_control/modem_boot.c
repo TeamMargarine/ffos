@@ -12,10 +12,15 @@
 #include <time.h>
 #include "packet.h"
 
+#define SKIP_MTD_BAND_BLOCK     1
+#ifdef SKIP_MTD_BAND_BLOCK
+#include <mtd/mtd-user.h>
+#endif
 struct image_info {
 	char *image_path;
-	int image_size;
-	unsigned long address;
+	char *image_path_bak;
+	unsigned int image_size;
+	unsigned int address;
 };
 //#define __TEST_SPI_ONLY__
 #define	MODEM_POWER_PATH	"/sys/devices/platform/modem_interface/modempower"
@@ -26,57 +31,97 @@ struct image_info {
 #define	FDL_PACKET_SIZE 	256
 #define HS_PACKET_SIZE		(60*1024)
 
+#define FDL_CP_PWRON_DLY	(180*1000)//us
+#define FDL_CP_UART_TIMEOUT	(200) //ms
+#define FDL_CP_UART_REC_DLY	(5*1000) //us
+
 #define	DL_FAILURE		(-1)
 #define DL_SUCCESS		(0)
-char test_buffer[HS_PACKET_SIZE+64]={0};
+char test_buffer[HS_PACKET_SIZE+128]={0};
+
 static int modem_images_count=6;
 static char *uart_dev = UART_DEVICE_NAME;
-struct image_info download_image_info[]={
-        { //fixvn
-                "/dev/mtd/mtd3",
-                0x3000,
-                0x40000000,
-        },
-        { //fixvn
-                "/fixnv/fixnv.bin",
-                0x1E000,
-                0x400,
-        },
-        { //fixvn
-                "/fixnv/fixnv.bin",
-                0x1E000,
-                0x02100000,
-        },
-        { //DSP code
-                "/dev/mtd/mtd7",
-                0x200000,
-                0x00020000,
-        },
-        { //ARM code
-                "/dev/mtd/mtd19",
-                0x009F8000,
-                0x00400000,
-        },
-        { //running nv
-                "/runtimenv/runtimenv.bin",
-                0x20000,
-                0x02120000,
-        },
-        { //running nv
-                NULL,
-                0,
-                0,
-        },
+static int need_shutdown = 0;
+static int fdl_cp_poweron_delay = FDL_CP_PWRON_DLY;
+	
+struct image_info download_image_info[] = {
+	{ //fixvn
+		"/dev/mtd/mtd3",
+		"/dev/mtd/mtd3",
+		0x3000,
+		0x40000000,
+	},
+	{ //fixvn
+#ifdef BOARD_SP7710G2
+		"/fixnv/fixnv.bin",
+		"/fixnv/fixnvbkup.bin",
+#else
+		"/fixnv/fixnv.bin",
+		"/backupfixnv/fixnv.bin",
+#endif
+		0x1F000,
+		0x400,
+	},
+	{ //fixvn
+#ifdef BOARD_SP7710G2
+		"/fixnv/fixnv.bin",
+		"/fixnv/fixnvbkup.bin",
+#else
+		"/fixnv/fixnv.bin",
+		"/backupfixnv/fixnv.bin",
+#endif
+		0x1F000,
+		0x02100000,
+	},
+	{ //DSP code
+		"/dev/mtd/mtd7",
+		"/dev/mtd/mtd7",
+		0x200000,
+		0x00020000,
+	},
+	{ //ARM code
+#ifdef BOARD_SP7710G2
+		"/dev/mtd/mtd4",
+		"/dev/mtd/mtd4",
+#else
+		"/dev/mtd/mtd19",
+		"/dev/mtd/mtd19",
+#endif
+		0x009F8000,
+		0x00400000,
+		},
+	{ //running nv
+#ifdef BOARD_SP7710G2
+		"/runtimenv/runtimenv.bin",
+		"/runtimenv/runtimenvbkup.bin",
+#else
+		"/runtimenv/runtimenv.bin",
+		"/runtimenv/runtimenv.bin",
+#endif
+		0x40000,
+		0x02120000,
+	},
+	{ //productinfo
+		"/productinfo/productinfo.bin",
+		"/productinfo/productinfobkup.bin",
+		0x4000,
+		0x02160000,
+	},
+	{
+		NULL,
+		NULL,
+		0,
+		0,
+	},
 };
 static int modem_interface_fd = -1;
 static int boot_status = 0;
-static int need_shutdown = 0;
 int speed_arr[] = {B921600,B115200, B38400, B19200, B9600, B4800, B2400, B1200, B300,
                    B921600,B115200, B38400, B19200, B9600, B4800, B2400, B1200, B300, };
 int name_arr[] = {921600,115200,38400,  19200, 9600,  4800,  2400,  1200,  300,
         921600, 115200,38400,  19200,  9600, 4800, 2400, 1200,  300, };
 
-int get_modem_images_info(void)
+int get_modem_images_info_bak(void)
 {
     FILE *fp;
     int images_count = 0;
@@ -123,9 +168,14 @@ int get_modem_images_info(void)
         info[images_count].image_size = strtol(&length_ptr[2],&save_ptr,16);
         info[images_count].address = strtol(&address_ptr[2],&save_ptr,16);
         if((info[images_count].address == 0) || (info[images_count].image_size==0)){
+                /*get tty device number from modem_images.info*/
                 uart_dev = info[images_count].image_path;
                 printf("UART Device = %s",uart_dev);
-        } else {
+                if(info[images_count].image_size != 0){
+                        /*get cp power delay param from modem_images.info*/
+                        fdl_cp_poweron_delay = info[images_count].image_size;
+                }
+        }else {
                 images_count++;
         }
         if(images_count >= max_item) break;
@@ -134,6 +184,157 @@ int get_modem_images_info(void)
     modem_images_count = images_count;
     return images_count;
 }
+
+
+static unsigned short calc_checksum(unsigned char *dat, unsigned long len)
+{
+	unsigned long checksum = 0;
+	unsigned short *pstart, *pend;
+	if (0 == (unsigned long)dat % 2)  {
+		pstart = (unsigned short *)dat;
+		pend = pstart + len / 2;
+		while (pstart < pend) {
+			checksum += *pstart;
+			pstart ++;
+		}
+		if (len % 2)
+			checksum += *(unsigned char *)pstart;
+		} else {
+		pstart = (unsigned char *)dat;
+		while (len > 1) {
+			checksum += ((*pstart) | ((*(pstart + 1)) << 8));
+			len -= 2;
+			pstart += 2;
+		}
+		if (len)
+			checksum += *pstart;
+	}
+	checksum = (checksum >> 16) + (checksum & 0xffff);
+	checksum += (checksum >> 16);
+	return (~checksum);
+}
+
+/*
+	TRUE(1): pass
+	FALSE(0): fail
+*/
+static int _chkEcc(unsigned char* buf, int size)
+{
+	unsigned short crc,crcOri;
+//	crc = __crc_16_l_calc(buf, size-2);
+//	crcOri = (uint16)((((uint16)buf[size-2])<<8) | ((uint16)buf[size-1]) );
+
+	crc = calc_checksum(buf,size-4);
+	crcOri = (unsigned short)((((unsigned short)buf[size-3])<<8) | ((unsigned short)buf[size-4]) );
+
+	return (crc == crcOri);
+}
+int _chkImg(char *fileName, int size)
+{
+	unsigned char* buf;
+	int fileHandle = 0;;
+	int ret=0;
+
+	buf = malloc(size);
+	memset(buf,0xFF,size);
+	fileHandle = open(fileName, O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+	ret = read(fileHandle, buf, size);
+	close(fileHandle);
+	// check IO
+	if(ret != size){
+		free(buf);
+		return 0;
+	}
+	//check crc
+	if(_chkEcc(buf, size)){
+		free(buf);
+		return 1;
+	}
+	free(buf);
+	return 0;
+}
+
+int get_modem_images_info(void)
+{
+	FILE *fp;
+	char line[512];
+	int cnt;
+	unsigned int address,size;
+	char originPath[100],bakPath[100];
+	 int max_item =( sizeof(download_image_info)/sizeof(download_image_info[0]))-1;
+
+// 1 get image info from config file
+	if (!(fp = fopen("/modem_images.info", "r"))) {
+		return 0;
+	}
+	printf("start parase modem images file\n");
+
+	cnt = 0;
+	memset(download_image_info,0,sizeof(download_image_info));
+	modem_images_count = 0;
+	printf("\toriginImage\t\tbackupImage\t\tlength\taddress\n");
+	while(fgets(line, sizeof(line), fp)) {
+		line[strlen(line)-1] = '\0';
+		if (line[0] == '#' || line[0] == '\0'){
+			continue;
+		}
+		if(-1 == sscanf(
+				line,"%s %s %x %x",
+				originPath,
+				bakPath,
+				&download_image_info[cnt].image_size,
+				&download_image_info[cnt].address
+			)
+		){
+			continue;
+		}
+		download_image_info[cnt].image_path = strdup(originPath);
+		download_image_info[cnt].image_path_bak = strdup(bakPath);
+
+		printf("\t%32s\t%32s\t0x%8x\t0x%8x\n",download_image_info[cnt].image_path,download_image_info[cnt].image_path_bak,download_image_info[cnt].image_size,download_image_info[cnt].address);
+
+		if((0 == download_image_info[cnt].address) || 0 == (download_image_info[cnt].image_size)){
+			/*get tty device number from modem_images.info*/
+			uart_dev = download_image_info[cnt].image_path;
+			printf("UART Device = %s",uart_dev);
+			if(download_image_info[cnt].image_size != 0){
+			/*get cp power delay param from modem_images.info*/
+			fdl_cp_poweron_delay = download_image_info[cnt].image_size;
+			}
+		}else {
+			cnt++;
+		}
+		if(max_item <= cnt){
+			printf("Max support %d item, this config has too many item!!!\n",max_item);
+			break;
+		}
+	}
+	fclose(fp);
+	download_image_info[cnt].image_path		= 0;
+	download_image_info[cnt].image_path_bak	= 0;
+	download_image_info[cnt].image_size		= 0;
+	download_image_info[cnt].address			= 0;
+	printf("end parase %d!\n",cnt);
+	modem_images_count = cnt;
+
+// 2 check image file
+	for(cnt = 0;  cnt < modem_images_count; cnt++){
+		if(!strcmp(download_image_info[cnt].image_path,download_image_info[cnt].image_path_bak)){
+			continue;
+		}
+		if(_chkImg(download_image_info[cnt].image_path, download_image_info[cnt].image_size)){
+			continue;
+		}
+		if(!_chkImg(download_image_info[cnt].image_path_bak, download_image_info[cnt].image_size)){
+			continue;
+		}
+		strcpy(download_image_info[cnt].image_path,download_image_info[cnt].image_path_bak);
+	}
+// 3 return
+	return cnt;
+}
+
+
 void print_modem_image_info(void)
 {
         int i;
@@ -155,7 +356,7 @@ static void reset_modem(void)
 		return;
         if(need_shutdown == 1){
         	write(modem_power_fd,"0",2);
-		usleep(1000*1000);
+		usleep(500*1000);
 	}
 	need_shutdown = 1;
         write(modem_power_fd,"1",2);
@@ -168,11 +369,11 @@ void delay_ms(int ms)
 	delay.tv_usec = ms * 1000; 
 	select(0, NULL, NULL, NULL, &delay);
 }
-#define UART_TIMEOUT    200
+
 static void try_to_connect_modem(int uart_fd)
 {
 	unsigned long hand_shake = 0x7E7E7E7E;
-	int buffer[16]={0};
+	char buffer[64]={0};
 	char *version_string = (char *)buffer;
 	char *data = version_string;
 	int modem_connect = 0;
@@ -182,21 +383,21 @@ static void try_to_connect_modem(int uart_fd)
 
 	delay_time.tv_sec = 0;
     	printf("try to connect modem(%d)......\n",boot_status);
-        modem_connect = UART_TIMEOUT;
+        modem_connect = FDL_CP_UART_TIMEOUT;
 
 	for(;;){
 		
-		if(modem_connect >= UART_TIMEOUT){
+		if(modem_connect >= FDL_CP_UART_TIMEOUT){
         		if(boot_status == 0){
 				reset_modem();
-				usleep(180*1000);
+				usleep(fdl_cp_poweron_delay);
 			}
 		}
 
 		data = version_string;
 		if(boot_status == 0){
 			i=0;
-			if(modem_connect >= UART_TIMEOUT){
+			if(modem_connect >= FDL_CP_UART_TIMEOUT){
 				do{
 					ret = read(uart_fd,data,1);
 					i++;
@@ -210,7 +411,7 @@ static void try_to_connect_modem(int uart_fd)
 				modem_connect = 0;
 			}
 		}
-		usleep(5*1000);
+		usleep(FDL_CP_UART_REC_DLY);
 		write(uart_fd,&hand_shake,1);
 		
 		data = version_string;
@@ -237,11 +438,15 @@ static void try_to_connect_modem(int uart_fd)
 							break;
 						}
 						data++;
+						if ( (data - version_string) >= sizeof(buffer)) {
+							printf("invalid version: rubbish data in driver");
+							break;
+						}
 					}  else {
 						modem_connect += 2;
 					}
 				
-				}while(modem_connect < UART_TIMEOUT);
+				}while(modem_connect < FDL_CP_UART_TIMEOUT);
 			} else {
 				if(version_string[0] == 0x55){
 					write(uart_fd,&hand_shake,3);
@@ -256,9 +461,9 @@ static void try_to_connect_modem(int uart_fd)
 	}
 }
 
-int download_image(int channel_fd,struct image_info *info)
+int download_image(int channel_fd,struct image_info *info,int productinfo_flag)
 {
-	int packet_size;
+	unsigned int packet_size;
 	int image_fd;
 	int read_len;
 	char *buffer;
@@ -266,6 +471,13 @@ int download_image(int channel_fd,struct image_info *info)
 	int count = 0;
 	int ret;
 	
+#ifdef SKIP_MTD_BAND_BLOCK
+        mtd_info_t  meminfo;
+        int need_skip = 0;
+        unsigned long long current_offset = 0;
+        unsigned long long blk_remain = 0;
+        unsigned long long current_read_size = 0;
+#endif
         if(info->image_path == NULL)
                 return DL_SUCCESS;
 
@@ -276,6 +488,20 @@ int download_image(int channel_fd,struct image_info *info)
 		return DL_SUCCESS;
 	}
 
+#ifdef SKIP_MTD_BAND_BLOCK
+        if(!strncmp("/dev/mtd/mtd",info->image_path,12)){
+            need_skip = 1;
+            printf("image = %s :: need skip badblock!\n");
+            if(ioctl(image_fd, MEMGETINFO, &meminfo) != 0){
+                printf("get MEMGETINFO error! error = %d\n",
+                        ioctl(image_fd, MEMGETINFO, &meminfo));
+            }
+            printf("meminfo: erasesize = 0x%x,writesize = 0x%x\n",
+                    meminfo.erasesize,meminfo.writesize);
+        }else{
+            printf("image = %s :: need not skip badblock!\n");
+        }
+#endif
 	printf("Start download image %s image_size 0x%x address 0x%x\n",info->image_path,info->image_size,info->address);
 	image_size = info->image_size;
 	count = (image_size+HS_PACKET_SIZE-1)/HS_PACKET_SIZE;
@@ -288,7 +514,41 @@ int download_image(int channel_fd,struct image_info *info)
 		packet_size = HS_PACKET_SIZE;
 		buffer = (char *)&test_buffer[8];
 		do{
+#ifdef SKIP_MTD_BAND_BLOCK
+                    if(need_skip){
+                        while((current_offset % meminfo.erasesize)==0x0){
+                            printf("Test if current block is bad ....\n");
+                            printf("current_offset = 0x%x\n",current_offset);
+                            printf("MEMGETBADBLOCK ioctl returns  %d(0x%x)\n",
+                                    ioctl(image_fd, MEMGETBADBLOCK, &current_offset),
+                                    ioctl(image_fd, MEMGETBADBLOCK, &current_offset));
+                            if(ioctl(image_fd, MEMGETBADBLOCK, &current_offset) > 0){
+                                printf("Current blcok is bad!!\n");
+                                printf("jump to next block ...\n");
+                                current_offset += meminfo.erasesize;
+                                if(lseek(image_fd, current_offset, SEEK_SET) != current_offset){
+                                    printf("lseek image_fd error!!\n");
+                                    return DL_FAILURE;
+                                }
+                            }else{
+                                printf("Current block is good !!!\n");
+                                break;
+                            }
+                        }
+                        blk_remain = meminfo.erasesize - (current_offset % meminfo.erasesize);
+                        current_read_size = (blk_remain >= packet_size)?packet_size:blk_remain;
+                        printf("blk_remain = 0x%x,packet_size = 0x%x,we try to read 0x%x\n",
+                                blk_remain,packet_size,current_read_size);
+                        read_len = read(image_fd,buffer,current_read_size);
+                        printf("actualy readed length = 0x%x,increase current_offset \n",
+                                read_len);
+                        current_offset += read_len;
+                    }else{
+                        read_len = read(image_fd,buffer,packet_size);
+                    }
+#else
 			read_len = read(image_fd,buffer,packet_size);
+#endif
 			if(read_len > 0){
 				packet_size -= read_len;
 				buffer += read_len;
@@ -299,6 +559,18 @@ int download_image(int channel_fd,struct image_info *info)
 				test_buffer[i+8] = 0xFF;
 			image_size = 0;
 		}else { image_size -= HS_PACKET_SIZE;}
+		//memset(test_buffer,i,HS_PACKET_SIZE);
+		if(productinfo_flag){
+			int fd = open("/proc/cmdline", O_RDONLY);
+			memset(&test_buffer[16*1024+8],0,1024);
+			if(fd >= 0){
+				read(fd, &test_buffer[16*1024+8], 1024);
+				close(fd);
+				printf("cmd_line : %s\n",(char *)&test_buffer[16*1024+8]);
+			} else {
+				printf("open /proc/cmdline failed\n");
+			}
+		}
 		ret = send_data_message(channel_fd,test_buffer,HS_PACKET_SIZE,1);
 		if(ret != DL_SUCCESS){
 			close(image_fd);
@@ -320,7 +592,10 @@ int download_images(int channel_fd)
 
 	info = &download_image_info[1];
 	for(i=0;i<image_count;i++){
-		ret = download_image(channel_fd,info);
+		if(i == image_count - 1)
+			ret = download_image(channel_fd,info,1);
+		else
+			ret = download_image(channel_fd,info,0);
 		if(ret != DL_SUCCESS)
 			break;
 		info++;
@@ -346,6 +621,7 @@ void * load_fdl2memory(int *length)
 	size = info->image_size;
         buffer = malloc(size+4);
         if(buffer == NULL){
+                close(fdl_fd);
                 printf("no memory\n");
                 return NULL;
         }
@@ -445,7 +721,7 @@ int open_uart_device(int polling_mode,int speed)
 	fd = open( uart_dev, O_RDWR|O_NONBLOCK );         //| O_NOCTTY | O_NDELAY
     else
 	fd = open( uart_dev, O_RDWR);
-    if(fd > 0)
+    if(fd >= 0)
     	set_raw_data_speed(fd,speed);  
     return fd;
 }
@@ -490,7 +766,7 @@ reboot_modem:
         for(;;)
         {
             	modem_interface_fd = open(DLOADER_PATH, O_RDWR);
-                if(modem_interface_fd==0)
+                if(modem_interface_fd>=0)
                         break;
         }
     }

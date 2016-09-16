@@ -9,9 +9,12 @@ extern "C" {
 
 #define ENG_SIMTYPE			"persist.msms.phone_count"
 #define ENG_PC_DEV			"/dev/input/event0"
-#define ENG_ATAUTO_DEV		"/dev/CHNPTY12"
-#define ENG_MODEM_DEV		"/dev/CHNPTY13"
-#define ENG_MODEM_DEV2		"/dev/CHNPTY14"
+#define ENG_ATAUTO_DEVT		"/dev/CHNPTYT12"
+#define ENG_MODEM_DEVT		"/dev/CHNPTYT13"
+#define ENG_MODEM_DEVT2		"/dev/CHNPTYT14"
+#define ENG_ATAUTO_DEVW		"/dev/CHNPTYW12"
+#define ENG_MODEM_DEVW		"/dev/CHNPTYW13"
+#define ENG_MODEM_DEVW2		"/dev/CHNPTYW14"
 #define ENG_ERR_TIMEOUT     "timeout"
 #define ENG_ERR_DATERR     	"daterr"
 
@@ -21,7 +24,7 @@ struct eng_buf_struct {
 	char buf[ENG_BUF_LEN];
 };
 
-int eng_client(int port, int type);
+int eng_client(char *name, int type);
 
 #ifdef __cplusplus
 }

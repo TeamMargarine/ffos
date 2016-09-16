@@ -1,19 +1,15 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2012 Spreadtrum Communications Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
-
 //#include <linux/i2c.h>
 //#include <linux/gpio.h>
 //#include <linux/delay.h>
@@ -47,7 +43,11 @@ extern SENSOR_INFO_T g_OV7660_yuv_info;
 extern SENSOR_INFO_T g_nmi600_yuv_info;//atv:nmi bonnie
 extern SENSOR_INFO_T g_ov5640_mipi_yuv_info;
 extern SENSOR_INFO_T g_ov5640_mipi_raw_info;
+extern SENSOR_INFO_T g_ov5647_mipi_raw_info;
+extern SENSOR_INFO_T g_ov5648_mipi_raw_info;
+extern SENSOR_INFO_T g_ov8825_mipi_raw_info;
 extern SENSOR_INFO_T g_s5k5ccgx_yuv_info_mipi;
+extern SENSOR_INFO_T g_s5k4e1ga_mipi_raw_info;
 extern SENSOR_INFO_T g_hi351_mipi_yuv_info;
 
 /**---------------------------------------------------------------------------*
@@ -55,27 +55,34 @@ extern SENSOR_INFO_T g_hi351_mipi_yuv_info;
  **---------------------------------------------------------------------------*/
 const SENSOR_INFO_T* main_sensor_infor_tab[]=
 {
-	&g_hi351_mipi_yuv_info,
+#ifdef CONFIG_BACK_CAMERA_MIPI
 	&g_ov5640_mipi_yuv_info,
 	&g_s5k5ccgx_yuv_info_mipi,
+	&g_s5k4e1ga_mipi_raw_info,
+	&g_hi351_mipi_yuv_info,
 	//&g_ov5640_mipi_raw_info,
-	//&g_ov5640_yuv_info,
+	&g_ov5647_mipi_raw_info,
+	&g_ov5648_mipi_raw_info,
+	&g_ov8825_mipi_raw_info,
+#endif
+#ifdef CONFIG_BACK_CAMERA_CCIR
+	&g_ov5640_yuv_info,
 	//&g_OV7675_yuv_info,
 	//&g_OV2655_yuv_info,
 	//&g_OV7675_yuv_info,
 	//&g_OV2640_yuv_info,
+#endif
 	PNULL
 };
 
 const SENSOR_INFO_T* sub_sensor_infor_tab[]=
 {
-#ifndef CONFIG_FRONT_CAMERA_NONE
+#ifdef CONFIG_FRONT_CAMERA_CCIR
 	&g_OV7675_yuv_info,
 	//&g_GC0309_yuv_info,
 	//g_OV7690_yuv_info,
-#else	
-	PNULL
 #endif
+	PNULL
 };
 
 

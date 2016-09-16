@@ -45,8 +45,10 @@ public class phonetest extends ListActivity {
         		break;
         	}
             // When clicked, show a toast with the TextView text
+	    if(view instanceof TextView){
             Toast.makeText(getApplicationContext(), ((TextView) view).getText(),
                 Toast.LENGTH_SHORT).show();
+	     }
           }
         
         });        

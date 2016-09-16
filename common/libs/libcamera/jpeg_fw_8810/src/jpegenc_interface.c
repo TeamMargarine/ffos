@@ -86,6 +86,32 @@ PUBLIC void JPEG_HWUpdateMEABufInfo(void)
 		VSP_WRITE_REG(VSP_AHBM_REG_BASE+AHBM_ENDAIN_SEL_OFFSET, (cmd<<4)|(endian_sel & 0xf), "configure uv offset");
 	}
 
+
+PUBLIC void JPEG_HWUpdateMEABufInfoEX(uint32_t id)
+	{
+		JPEG_CODEC_T *jpeg_fw_codec = Get_JPEGEncCodec();
+		uint32 y_addr = (uint32)(jpeg_fw_codec->YUV_Info_1.y_data_ptr);
+		uint32 u_addr = (uint32)(jpeg_fw_codec->YUV_Info_1.u_data_ptr);
+
+		uint32 cmd = u_addr - y_addr;
+		uint32 endian_sel = 0;
+
+		if(0 == id)
+		{
+			y_addr = (uint32)(jpeg_fw_codec->YUV_Info_0.y_data_ptr);
+			u_addr = (uint32)(jpeg_fw_codec->YUV_Info_0.u_data_ptr);
+
+			cmd = u_addr - y_addr;
+			endian_sel = 0;
+		}
+
+			//now, for uv_interleaved
+		cmd >>= 2; //word unit
+		endian_sel = VSP_READ_REG(VSP_AHBM_REG_BASE+AHBM_ENDAIN_SEL_OFFSET, "red endian sel offset");		//add by shan.he
+		VSP_WRITE_REG(VSP_AHBM_REG_BASE+AHBM_ENDAIN_SEL_OFFSET, (cmd<<4)|(endian_sel & 0xf), "configure uv offset");
+	}
+
+
 PUBLIC JPEG_RET_E JPEG_HWEncStart(uint32 raw_width, uint32 raw_height, JPEG_ENC_OUTPUT_PARA_T *output_para_ptr)
 {
 	JPEG_CODEC_T *jpeg_fw_codec = Get_JPEGEncCodec();

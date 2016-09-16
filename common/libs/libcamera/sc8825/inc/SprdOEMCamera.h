@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef ANDROID_HARDWARE_SPRD_OEM_CAMERA_H
 #define ANDROID_HARDWARE_SPRD_OEM_CAMERA_H
 
@@ -33,6 +32,7 @@ extern "C"
 typedef enum {
 	CAMERA_NORMAL_MODE = 0,
 	CAMERA_HDR_MODE,
+	CAMERA_CONTINUE_SHOT_MODE,
 	CAMERA_MODE_MAX
 }takepicture_mode;
 
@@ -212,6 +212,9 @@ typedef struct {
 	/*face detect*/
 	uint32_t face_num;
 	morpho_FaceRect *face_ptr;
+
+    /*cap mode*/
+    takepicture_mode         cap_mode;
 } camera_frame_type;
 
 typedef enum
@@ -249,6 +252,8 @@ typedef struct
 	JPEGENC_outputType       mode;
 	void                     *outPtr;
 	uint32_t                 size;
+	takepicture_mode         cap_mode;
+	uint32_t                 need_free;
 } JPEGENC_CBrtnType;
 
 typedef enum {
@@ -431,6 +436,7 @@ typedef enum {
 	CAMERA_PARM_SENSOR_ROTATION, /* 0, 90, 180, 270 degrees */
 	CAMERA_PARM_FOCUS_MODE,
 	CAMERA_PARM_DCDV_MODE,
+	CAMERA_PARM_SHOT_NUM,
 	CAMERA_PARM_MAX
 } camera_parm_type;
 
@@ -480,7 +486,7 @@ camera_ret_code_type camera_start_preview(camera_cb_f_type callback,
 
 camera_ret_code_type camera_start_focus(void *client_data);
 
-camera_ret_code_type camera_cancel_autofocus(void);
+camera_ret_code_type camera_cancel_autofocus(void *client_data);
 
 camera_ret_code_type camera_stop(camera_cb_f_type callback,
 				void *client_data);

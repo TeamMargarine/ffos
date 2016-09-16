@@ -30,7 +30,13 @@ LOCAL_CFLAGS += -D_VOICE_CALL_VIA_LINEIN
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc8810)
-LOCAL_CFLAGS += -D_DSP_CTRL_CODEC
+endif
+
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc7710)
+endif
+
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc8830)
+LOCAL_CFLAGS += -DAUDIO_SPIPE_TD
 endif
 
 LOCAL_C_INCLUDES += \
@@ -43,9 +49,15 @@ LOCAL_C_INCLUDES += \
 	device/sprd/common/libs/audio/vb_pga \
 	device/sprd/common/libs/audio/record_process
 
+
 LOCAL_SRC_FILES := audio_hw.c tinyalsa_util.c audio_pga.c \
 			record_process/aud_proc_config.c \
 			record_process/aud_filter_calc.c
+
+ifeq ($(strip $(AUDIO_MUX_PIPE)), true)
+LOCAL_SRC_FILES  += audio_mux_pcm.c
+LOCAL_CFLAGS += -DAUDIO_MUX_PCM
+endif
 
 LOCAL_SHARED_LIBRARIES := \
 	liblog libcutils libtinyalsa libaudioutils \

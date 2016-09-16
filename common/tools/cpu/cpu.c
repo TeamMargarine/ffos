@@ -83,6 +83,7 @@ static int get_cpu_tick(unsigned long *value)
 	}
 	if (fgets(buffer, sizeof(buffer), stat_fp) == NULL) {
 		printf("read from %s failed!\n", PROC_STAT);
+		fclose(stat_fp);
 		return -1;
 	}
 	sscanf(buffer, "%s %lu %lu %lu %lu %lu %lu %lu",
@@ -345,6 +346,7 @@ int main(int argc, char *argv[])
 				printf("Usage: %s [-v] [-i interval] [-p pid_list] [-n name_list]\n", argv[0]);
 				exit(0);
 			}
+			break;
 				
 		case 'n':
 			check_process = 1;

@@ -243,7 +243,7 @@ static int eng_event_reg(int fd)
 	if (monitor_svc_fd < 0
 			&& ( strncmp((const char*)regname,ENG_MONITOR,strlen(ENG_MONITOR)) != 0)){
 		memset(eng_write_buf, 0, ENG_MAX_RW_SIZE);
-		memcpy(eng_write_buf, ENG_DESTERROR, ENG_MAX_RW_SIZE);
+		strcpy(eng_write_buf, ENG_DESTERROR);
 		eng_write(fd, eng_write_buf, strlen(eng_write_buf));
 		close(fd);
 		return -1;
@@ -471,7 +471,7 @@ static void  appclient_event_func(int _fd, unsigned ev, void *_l)
 		} else {
 			//tell sender that the desitnation socket closed
 			memset(eng_write_buf, 0, ENG_MAX_RW_SIZE);
-			memcpy(eng_write_buf, ENG_DESTERROR, ENG_MAX_RW_SIZE);
+			strcpy(eng_write_buf, ENG_DESTERROR);
 			eng_write(_fd, eng_write_buf, strlen(eng_write_buf));
 		}
 	}
@@ -510,7 +510,7 @@ static void modemclient_event_func(int _fd, unsigned ev, void *_l)
  			ALOGD("modemclient_event_func dest socket fd error!\n");
 			//tell sender that the desitnation socket closed
 			memset(eng_write_buf, 0, ENG_MAX_RW_SIZE);
-			memcpy(eng_write_buf, ENG_DESTERROR, ENG_MAX_RW_SIZE);
+			strcpy(eng_write_buf, ENG_DESTERROR);
 			eng_write(_fd, eng_write_buf, strlen(eng_write_buf));
  		}
 	}
@@ -604,16 +604,18 @@ void *eng_svc_thread(void *x)
 	return 0;
 }
 	
-int main(void)
+int main (int argc, char** argv)
 {
-	int s,n,i;
+	int s,n,ret;
 	struct sockaddr addr;
 	socklen_t alen;
-	fd_set rfd, wfd, efd;
 	pid_t pid;
-    	eng_thread_t t1,t2;
+	eng_thread_t t;
 	int has_thread = 0;
-	
+	int type;
+	int opt;
+	char name[10];
+#if 0
 	umask(0);
 
 	/*
@@ -627,19 +629,43 @@ int main(void)
 
 	if (chdir("/") < 0)
 		ALOGD("can't change directory to /");
-	
-	s = eng_server(ENG_SOCKET_PORT,SOCK_STREAM);
+#endif
+
+	while ( -1 != (opt = getopt(argc, argv, "t:"))) {
+		switch (opt) {
+			case 't':
+				memset(name,0,10);
+				type = atoi(optarg);
+				if (type){
+					strcpy(name,"engtd");
+				} else {
+					strcpy(name,"engw");
+				}
+				break;
+			default:
+				exit(EXIT_FAILURE);
+		}
+	}
+	ENG_LOG("%s servername=%s",__func__,name);
+	s = android_get_control_socket(name);
+	//s = eng_server(ENG_SOCKET_PORT,SOCK_STREAM);
 	if (s == -1)
 	{
-		return -1;
+		ENG_LOG("Failed to get control socket %s",strerror(errno));
+		exit(-1);
 	}
-	
-	ENG_LOG("engserver start listen\n");
-	
-       alen = sizeof(addr);
+
+	ret = listen(s, 4);
+	if (ret < 0) {
+		ENG_LOG("Failed to listen on control socket '%d': %s",s, strerror(errno));
+		exit(-1);
+	}
+
+	ENG_LOG("engserver %s start listen\n",name);
 
 	client_info_init();
-			
+
+	alen = sizeof(addr);
 	for (; ;)
 	{
 		if ( (n=accept(s,&addr,&alen)) == -1)
@@ -650,9 +676,9 @@ int main(void)
 
 		if ( eng_event_reg(n) < 0 )
 			continue;
-		
+
 		if (0 == has_thread){
-			if (0 != eng_thread_create( &t2, eng_svc_thread, (void *)n)){
+			if (0 != eng_thread_create( &t, eng_svc_thread, (void *)n)){
 				ALOGD("engserver thread create error\n");
 			}
 		}

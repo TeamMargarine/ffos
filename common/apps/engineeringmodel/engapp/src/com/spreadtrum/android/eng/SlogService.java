@@ -16,102 +16,100 @@ import android.util.Log;
 
 public class SlogService extends Service {
 
+    private static final Class[] mStartForegroundSignature = new Class[] {
+            int.class, Notification.class };
 
-	private static final Class[] mStartForegroundSignature = new Class[] {
-			int.class, Notification.class };
+    private static final Class[] mStopForegroundSignature = new Class[] { boolean.class };
 
-	private static final Class[] mStopForegroundSignature = new Class[] { boolean.class };
+    private Method mStartForeground;
+    private Method mStopForeground;
+    private Object[] mStartForegroundArgs = new Object[2];
+    private Object[] mStopForegroundArgs = new Object[1];
+    Notification notification;
 
-	private Method mStartForeground;
-	private Method mStopForeground;
-	private Object[] mStartForegroundArgs = new Object[2];
-	private Object[] mStopForegroundArgs = new Object[1];
-	Notification notification;
+    @Override
+    public void onCreate() {
 
-	@Override
-	public void onCreate() {
+        // super.onCreate();
+        try {
+            mStartForeground = getClass().getMethod("startForeground",
+                    mStartForegroundSignature);
+            mStopForeground = getClass().getMethod("stopForeground",
+                    mStopForegroundSignature);
+        } catch (NoSuchMethodException e) {
+            // Running on an older platform.
+            mStartForeground = mStopForeground = null;
+        }
+    }
 
-		// super.onCreate();
-		try {
-			mStartForeground = getClass().getMethod("startForeground",
-					mStartForegroundSignature);
-			mStopForeground = getClass().getMethod("stopForeground",
-					mStopForegroundSignature);
-		} catch (NoSuchMethodException e) {
-			// Running on an older platform.
-			mStartForeground = mStopForeground = null;
-		}
-	}
+    @Override
+    public void onStart(Intent intent, int startId) {
 
-	@Override
-	public void onStart(Intent intent, int startId) {
+        // Set the icon, scrolling text and timestamp
+        notification = new Notification(android.R.drawable.ic_dialog_alert,
+                getText(R.string.notification_slogsvc_statusbarprompt), 0);
 
-		// Set the icon, scrolling text and timestamp
-		notification = new Notification(android.R.drawable.ic_dialog_alert,
-				getText(R.string.notification_slogsvc_statusbarprompt),
-				System.currentTimeMillis());
+        // The PendingIntent to launch our activity if the user selects this
+        // notification
 
-		// The PendingIntent to launch our activity if the user selects this
-		// notification
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                new Intent(this, LogSettingSlogUITabHostActivity.class), 0);
 
-		PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-				new Intent(this, LogSettingSlogUITabHostActivity.class), 0);
+        // Set the info for the views that show in the notification panel.
+        notification.setLatestEventInfo(this,
+                getText(R.string.notification_slogsvc_title),
+                getText(R.string.notification_slogsvc_prompt), contentIntent);
 
-		// Set the info for the views that show in the notification panel.
-		notification.setLatestEventInfo(this,
-				getText(R.string.notification_slogsvc_title),
-				getText(R.string.notification_slogsvc_prompt), contentIntent);
+        Runnable runSlogService = new Runnable() {
 
-		Runnable runSlogService = new Runnable() {
+            public void run() {
+                if (mStartForeground != null) {
+                    mStartForegroundArgs[0] = Integer.valueOf(1);
+                    mStartForegroundArgs[1] = notification;
+                    try {
+                        mStartForeground.invoke(SlogService.this,
+                                mStartForegroundArgs);
+                    } catch (InvocationTargetException e) {
+                        // Should not happen.
+                        Log.w("Slog", "Unable to invoke startForeground", e);
+                    } catch (IllegalAccessException e) {
+                        // Should not happen.
+                        Log.w("Slog", "Unable to invoke startForeground", e);
+                    }
+                    return;
+                }
+            }
+        };
 
-			public void run() {
-				if (mStartForeground != null) {
-					mStartForegroundArgs[0] = Integer.valueOf(1);
-					mStartForegroundArgs[1] = notification;
-					try {
-						mStartForeground.invoke(SlogService.this,
-								mStartForegroundArgs);
-					} catch (InvocationTargetException e) {
-						// Should not happen.
-						Log.w("Slog", "Unable to invoke startForeground", e);
-					} catch (IllegalAccessException e) {
-						// Should not happen.
-						Log.w("Slog", "Unable to invoke startForeground", e);
-					}
-					return;
-				}
-			}
-		};
+        Thread threadSlogService = new Thread(null, runSlogService,
+                "SlogService");
+        threadSlogService.start();
 
-		Thread threadSlogService = new Thread(null, runSlogService,
-				"SlogService");
-		threadSlogService.start();
+    }
 
-	}
+    @Override
+    public void onDestroy() {
+        // TODO Auto-generated method stub
+        if (mStopForeground != null) {
+            mStopForegroundArgs[0] = Boolean.TRUE;
+            try {
+                mStopForeground.invoke(this, mStopForegroundArgs);
+            } catch (InvocationTargetException e) {
+                // Should not happen.
+                Log.w("Slog", "Unable to invoke stopForeground", e);
+            } catch (IllegalAccessException e) {
+                // Should not happen.
+                Log.w("Slog", "Unable to invoke stopForeground", e);
+            }
+            return;
+        }
+        super.onDestroy();
+    }
 
-	@Override
-	public void onDestroy() {
-		// TODO Auto-generated method stub
-		if (mStopForeground != null) {
-			mStopForegroundArgs[0] = Boolean.TRUE;
-			try {
-				mStopForeground.invoke(this, mStopForegroundArgs);
-			} catch (InvocationTargetException e) {
-				// Should not happen.
-				Log.w("Slog", "Unable to invoke stopForeground", e);
-			} catch (IllegalAccessException e) {
-				// Should not happen.
-				Log.w("Slog", "Unable to invoke stopForeground", e);
-			}
-			return;
-		}
-		super.onDestroy();
-	}
-
-	@Override
-	public IBinder onBind(Intent intent) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
 }

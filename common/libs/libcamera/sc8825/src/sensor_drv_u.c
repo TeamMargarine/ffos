@@ -1,17 +1,14 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2012 Spreadtrum Communications Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
  #include <utils/Log.h>
@@ -74,7 +71,7 @@ LOCAL SENSOR_TYPE_E s_sensor_type = SENSOR_TYPE_NONE;
 LOCAL SENSOR_MODE_E s_sensor_mode[SENSOR_ID_MAX] =
     { SENSOR_MODE_MAX, SENSOR_MODE_MAX, SENSOR_MODE_MAX };
 //LOCAL SENSOR_MUTEX_PTR s_imgsensor_mutex_ptr = PNULL;
-LOCAL SENSOR_REGISTER_INFO_T s_sensor_register_info = { 0x00};
+LOCAL SENSOR_REGISTER_INFO_T s_sensor_register_info;
 
 LOCAL SENSOR_REGISTER_INFO_T_PTR s_sensor_register_info_ptr =
     &s_sensor_register_info;
@@ -93,7 +90,7 @@ static BOOLEAN s_sensor_identified = SCI_FALSE;
 static BOOLEAN s_sensor_param_saved = SCI_FALSE;
 static uint8_t  s_sensor_index[SENSOR_ID_MAX]={0xFF,0xFF,0xFF,0xFF,0xFF};
 
-LOCAL EXIF_SPEC_PIC_TAKING_COND_T s_default_exif={0x00};
+LOCAL EXIF_SPEC_PIC_TAKING_COND_T s_default_exif;
 LOCAL pthread_t                   s_sensor_thread;
 LOCAL uint32_t                    s_queue_handle;
 /*LOCAL pthread_mutex_t             sensor_sync_mutex;
@@ -127,6 +124,7 @@ LOCAL volatile uint32_t           s_exit_monitor_flag = 0;
 #define SENSOR_IO_I2C_WRITE_REGS	_IOW(SENSOR_IOC_MAGIC, 14, SENSOR_REG_TAB_T)
 #define SENSOR_IO_SET_CAMMOT		_IOW(SENSOR_IOC_MAGIC, 15,  uint32_t)
 #define SENSOR_IO_SET_I2CCLOCK		_IOW(SENSOR_IOC_MAGIC, 16,  uint32_t)
+#define SENSOR_IO_I2C_WRITE_EXT		_IOW(SENSOR_IOC_MAGIC, 17,  SENSOR_I2C_T)
 
 #define SENSOR_MSG_QUEUE_SIZE           10
 
@@ -468,6 +466,38 @@ LOCAL int Sensor_SetI2CClock(void)
 	return ret;
 }
 
+LOCAL int _Sensor_Device_I2CWrite(SENSOR_I2C_T_PTR i2c_tab)
+{
+	int ret = SENSOR_SUCCESS;
+
+	ret = xioctl(g_fd_sensor, SENSOR_IO_I2C_WRITE_EXT, i2c_tab);
+	if (0 != ret)
+	{
+		SENSOR_PRINT_ERR("_Sensor_Device_I2CWrite failed, slave_addr=0x%x, ptr=0x%x, count=%d\n",
+			i2c_tab->slave_addr, (uint32_t)i2c_tab->i2c_data, i2c_tab->i2c_count);
+		ret = -1;
+	}
+
+	return ret;
+}
+
+int Sensor_WriteI2C(uint16_t slave_addr, uint8_t *cmd, uint16_t cmd_length)
+{
+	SENSOR_I2C_T i2c_tab;
+	int ret = SENSOR_SUCCESS;
+
+	i2c_tab.slave_addr 	= slave_addr;
+	i2c_tab.i2c_data	= cmd;
+	i2c_tab.i2c_count	= cmd_length;
+
+	SENSOR_PRINT("Sensor_WriteI2C, slave_addr=0x%x, ptr=0x%x, count=%d\n",
+		i2c_tab.slave_addr, (uint32_t)i2c_tab.i2c_data, i2c_tab.i2c_count);
+
+	ret = _Sensor_Device_I2CWrite(&i2c_tab);
+
+	return ret;
+}
+
 SENSOR_TYPE_E _Sensor_GetSensorType(void)
 {
 	return s_sensor_type;
@@ -688,7 +718,7 @@ LOCAL void Sensor_SetExportInfo(SENSOR_EXP_INFO_T * exp_info_ptr)
 	    ((sensor_info_ptr->hw_signal_polarity >> 4) & 0x1);
 	exp_info_ptr->pclk_delay =
 	    ((sensor_info_ptr->hw_signal_polarity >> 5) & 0x07);
-	exp_info_ptr->raw_info_ptr = sensor_info_ptr->raw_info_ptr;
+	exp_info_ptr->raw_info_ptr = (struct sensor_raw_info*)sensor_info_ptr->raw_info_ptr;
 
 	exp_info_ptr->source_width_max = sensor_info_ptr->source_width_max;
 	exp_info_ptr->source_height_max = sensor_info_ptr->source_height_max;
@@ -1465,12 +1495,10 @@ int Sensor_Init(uint32_t sensor_id, uint32_t *sensor_num_ptr)
 			if (SENSOR_SUCCESS == _Sensor_Register(SENSOR_MAIN)) {
 				sensor_num++;
 			}
-			#ifndef CONFIG_FRONT_CAMERA_NONE
 			if (SENSOR_SUCCESS == _Sensor_Register(SENSOR_SUB)) {
 				sensor_num++;
 			}
 			SENSOR_PRINT("1");
-			#endif
 
 			ret_val = Sensor_Open(sensor_id);
 			if (ret_val != SENSOR_SUCCESS ) {
@@ -1483,10 +1511,8 @@ int Sensor_Init(uint32_t sensor_id, uint32_t *sensor_num_ptr)
 			SENSOR_PRINT("Sensor_Init: register sesnor fail, start identify \n");
 			if (_Sensor_Identify(SENSOR_MAIN))
 				sensor_num++;
-			#ifndef CONFIG_FRONT_CAMERA_NONE
 			if (_Sensor_Identify(SENSOR_SUB))
 				sensor_num++;
-			#endif
 			ret_val = Sensor_Open(sensor_id);
 		}
 		s_sensor_identified = SCI_TRUE;

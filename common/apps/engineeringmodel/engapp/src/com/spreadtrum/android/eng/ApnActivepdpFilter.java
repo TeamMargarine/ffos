@@ -2,24 +2,22 @@ package com.spreadtrum.android.eng;
 
 import java.lang.reflect.Method;
 
-
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
-
+import android.os.Debug;
+import android.os.RemoteException;
 import android.preference.CheckBoxPreference;
-
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
-
-import android.util.Log;
 import android.telephony.TelephonyManager;
+import android.util.Log;
+
 import com.android.internal.telephony.ITelephony;
-import android.os.RemoteException;
-import android.content.Intent;
 
 public class ApnActivepdpFilter extends PreferenceActivity{
-
+    private static final boolean DEBUG = Debug.isDebug();
 	private String LOG_TAG = "ApnActivepdpFilter";
 	private int mPrefCount = 0;
 	private boolean mChecked = false;
@@ -204,7 +202,7 @@ public class ApnActivepdpFilter extends PreferenceActivity{
 			key = ALL_TYPE_APN;
 		}
 
-		Log.i(LOG_TAG, "onPreferenceChange(), " + key+mChecked);
+		if(DEBUG) Log.d(LOG_TAG, "onPreferenceChange(), " + key+mChecked);
 
 	   	try {
 			 mTelephony.setApnActivePdpFilter(key,mChecked);

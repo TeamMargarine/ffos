@@ -3027,7 +3027,7 @@ JINF_RET_E IMGJPEG_WriteExif(JINF_WEXIF_IN_PARAM_T *in_param_ptr,
 		return JPEGE_INVALID_ARGUMENT;
 	}
 	if ((NULL == in_param_ptr->exif_info_ptr)
-		&&(NULL == in_param_ptr->src_jpeg_buf_ptr)&&(NULL == in_param_ptr->temp_buf_ptr )) {
+		&&(NULL == in_param_ptr->src_jpeg_buf_ptr)&&(NULL ==in_param_ptr->temp_buf_ptr )) {
 		JPEG_PRINT_LOW("input parameter error!");
 		return JPEGE_INVALID_ARGUMENT;
 	}

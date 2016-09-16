@@ -123,7 +123,7 @@ PUBLIC void open_vsp_iram (void)
 //allow hardware to access the vsp buffer
 PUBLIC void close_vsp_iram (void)
 {
-	uint32 cmd;
+	uint32 cmd = 0;
 	
 //	cmd = (0<<4) | (1<<3);	
 	cmd = (cmd & ~0x10) | (1 << 3);

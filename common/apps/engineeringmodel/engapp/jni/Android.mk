@@ -16,7 +16,7 @@
 
 # This makefile supplies the rules for building a library of JNI code for
 # use by our example of how to bundle a shared library with an APK.
-ifeq ($(strip $(SPRDROID4.0_DEV)),true)
+
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -55,4 +55,3 @@ LOCAL_CFLAGS +=
 LOCAL_PRELINK_MODULE := false
 
 include $(BUILD_SHARED_LIBRARY)
-endif

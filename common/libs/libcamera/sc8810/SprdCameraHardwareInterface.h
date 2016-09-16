@@ -1,19 +1,20 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+* hardware/sprd/hsdroid/libcamera/sprdcamerahardwareinterface.h
+ * Dcam HAL based on sc8800g2
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Copyright (C) 2011 Spreadtrum 
+ * 
+ * Author: Xiaozhe wang <xiaozhe.wang@spreadtrum.com>
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
-
 #ifndef ANDROID_HARDWARE_SPRD_CAMERA_HARDWARE_H
 #define ANDROID_HARDWARE_SPRD_CAMERA_HARDWARE_H
 
@@ -55,6 +56,13 @@ typedef struct sprd_camera_memory {
 	void *data;
 }sprd_camera_memory_t;
 
+typedef enum
+{
+	CAMERA_FLUSH_RAW_HEAP,
+	CAMERA_FLUSH_RAW_HEAP_ALL,
+	CAMERA_FLUSH_MAX
+}CameraFlushMemTypeEnum;
+
 class SprdCameraHardware : public virtual RefBase {
 public:
     //virtual sp<IMemoryHeap> getPreviewHeap() const;
@@ -93,12 +101,14 @@ public:
 	void* get_jpeg_encoder_mem_by_HW(uint32_t *phy_addr);
 	void* get_temp_mem_by_HW(uint32_t size, uint32_t num, uint32_t *phy_addr);
 	void* get_temp_mem_by_jpegslice(uint32_t size, uint32_t num, uint32_t *phy_addr);
+	void* get_fd_mem(uint32_t size, uint32_t *phy_addr);
 	void free_preview_mem(uint32_t *phy_addr, uint32_t size, uint32_t index);
 	void free_raw_mem(uint32_t *phy_addr, uint32_t size, uint32_t index);
 	void free_jpeg_encoder_mem_by_HW(void);
 	void free_temp_mem_by_HW(void);
 	void free_temp_mem_by_jpegslice(void);
 	void FreeCameraMem(void);
+	void free_fd_mem(void);
      //virtual void setCallbacks(notify_callback notify_cb,data_callback data_cb,data_callback_timestamp data_cb_timestamp, void* user);
     virtual void        setCallbacks(camera_notify_callback notify_cb,
                                      camera_data_callback data_cb,
@@ -128,7 +138,12 @@ public:
     SprdCameraHardware(int cameraId);
     virtual             ~SprdCameraHardware();	
     int         getCameraId() const;
+
+	int flush_buffer(CameraFlushMemTypeEnum  type ,  void *v_addr, void *p_addr, int size);
+
 private:
+
+	sprd_camera_memory_t* GetCachePmem(const char *device_name, int buf_size, int num_bufs);
 
 	sprd_camera_memory_t* GetPmem(const char *device_name, int buf_size, int num_bufs);
 	void FreePmem(sprd_camera_memory_t* camera_memory);
@@ -140,14 +155,13 @@ private:
                                   recording_callback rcb, void *ruser);*/
     status_t startPreviewInternal();                              
     void stopPreviewInternal();
-
     static wp<SprdCameraHardware> singleton;
 
     /* These constants reflect the number of buffers that libqcamera requires
        for preview and raw, and need to be updated when libqcamera
        changes.
     */
-    static const int kPreviewBufferCount = 4;
+    static const int kPreviewBufferCount = 8;
     static const int kRawBufferCount = 1;
     static const int kJpegBufferCount = 1;
     static const int kRawFrameHeaderSize = 0x0;
@@ -166,6 +180,7 @@ private:
     int mOrientation_parm;
 
     void receivePreviewFrame(camera_frame_type *frame);
+    void receivePreviewFDFrame(camera_frame_type *frame);
     void HandleErrorState(void);
 
     static void stop_camera_cb(camera_cb_type cb,
@@ -266,6 +281,7 @@ sp<RawPmemPool> mJpegencSwapHeap; //for capture zoom scale.
     sprd_camera_memory_t *mJpegencHWHeap;
     sprd_camera_memory_t *mTempHWHeap;
     sprd_camera_memory_t *mTempJpegSliceHeap;
+	sprd_camera_memory_t *mFDHeap;
     sp<AshmemPool> mJpegHeap;
     sprd_camera_memory_t *mJpegencZoomHeap; //for capture zoom.
     sprd_camera_memory_t *mJpegencSwapHeap; //for capture zoom scale.
@@ -311,7 +327,7 @@ sp<RawPmemPool> mJpegencSwapHeap; //for capture zoom scale.
     };
 
     volatile Sprd_camera_state mCameraState;
-    static const char* const getCameraStateStr(Sprd_camera_state s);    
+    const char* getCameraStateStr(Sprd_camera_state s);
     //static const char* getCameraStateStr(Sprd_camera_state s);
     Sprd_camera_state change_state(Sprd_camera_state new_state, 
                                        bool lock = true);
@@ -376,6 +392,13 @@ sp<RawPmemPool> mJpegencSwapHeap; //for capture zoom scale.
    int32_t             mMsgEnabled;
    //sp<CameraHardwareInterface> mHardware;
    bool mIsStoreMetaData;
+   enum PreviewWindowState{
+        PREVIEW_WINDOW_SET_IDLE,
+        PREVIEW_WINDOW_SETTIN,
+        PREVIEW_WINDOW_SET_OK,
+        PREVIEW_WINDOW_SET_FAILED
+    };
+    PreviewWindowState mSettingPreviewWindowState;
 };
 
 }; // namespace android

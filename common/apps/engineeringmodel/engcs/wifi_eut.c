@@ -494,15 +494,20 @@ static long parse_packcount(char * filename)
 	char packcount[20];
 	memset(counter_respon,0,COUNTER_BUF_SIZE);
 	fd = open(filename, O_RDWR|O_NONBLOCK);
-	n = read(fd,counter_respon,COUNTER_BUF_SIZE);
+        if(fd < 0){
+            ALOGE("=== open file  %s error===\n",filename);
+        }else{
+            n = read(fd,counter_respon,COUNTER_BUF_SIZE);
+            close(fd);
+        }
 	char *p=strstr(counter_respon,"pktengrxducast");
 	if(p != NULL){
-	char *q=strstr(p," ");
-	char *s=strstr(q," pktengrxdmcast");
-	len= s-q-1;
-	memcpy(packcount,q+1,len);
-	return atol(packcount);
+	    char *q=strstr(p," ");
+	    char *s=strstr(q," pktengrxdmcast");
+	    len= s-q-1;
+	    memcpy(packcount,q+1,len);
+	    return atol(packcount);
 	}else{
-			return 0;
-		}
+	    return 0;
+        }
 }

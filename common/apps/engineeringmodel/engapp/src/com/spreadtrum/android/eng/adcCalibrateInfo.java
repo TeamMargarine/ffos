@@ -3,8 +3,10 @@ package com.spreadtrum.android.eng;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -12,6 +14,7 @@ import android.util.Log;
 import android.widget.TextView;
 
 public class adcCalibrateInfo extends Activity {
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String LOG_TAG = "adcCalibrateInfo";
 	private int sockid = 0;
 	private engfetch mEf;
@@ -42,6 +45,15 @@ public class adcCalibrateInfo extends Activity {
 
 	private class EventHandler extends Handler
     {
+
+		private static final String ADC_FILE = "/productinfo/adc_data";
+
+		public boolean isADCFileExists(){
+		    String sFile=ADC_FILE;
+		    java.io.File file = new java.io.File(sFile);
+		    return file.exists();
+		}
+
     	public EventHandler(Looper looper) {
     	    super(looper);
     	}
@@ -54,9 +66,13 @@ public class adcCalibrateInfo extends Activity {
 			ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
 			DataOutputStream outputBufferStream = new DataOutputStream(outputBuffer);
 
-			Log.e(LOG_TAG, "engopen sockid=" + sockid);
+			if(DEBUG) Log.d(LOG_TAG, "engopen sockid=" + sockid);
 
-			str=String.format("%d,%d,%d,%d,%d", msg.what,3,0,0,3);
+            /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+            //str=String.format("%d,%d,%d,%d,%d", msg.what,3,0,0,3);
+            str = new StringBuilder().append(msg.what).append(",").append(3).append(",")
+                  .append(0).append(",").append(0).append(",").append(3).toString();
+            /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 			try {
 			    outputBufferStream.writeBytes(str);
 			} catch (IOException e) {
@@ -67,9 +83,19 @@ public class adcCalibrateInfo extends Activity {
 
 			int dataSize = 512;
 			byte[] inputBytes = new byte[dataSize];
+			final String ret = System.getProperty("line.separator");
 			int showlen= mEf.engread(sockid,inputBytes,dataSize);
 			String str =  new String(inputBytes, 0, showlen);
-			txtViewlabel01.setText(str);
+
+			if(isADCFileExists()) {
+	            String str_adc =  "ADC Calbration: Pass";
+	            str = str_adc + ret + ret + str;
+			} else {
+                String str_adc =  "ADC Calbration: Fail";
+                str = str_adc + ret + ret + str;
+			}
+            txtViewlabel01.setText(str);
+
 			break;
     		 }
     	}

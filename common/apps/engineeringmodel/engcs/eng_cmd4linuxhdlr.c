@@ -118,7 +118,7 @@ int eng_at2linux(char *buf)
 
 eng_cmd_type eng_cmd_get_type(int cmd)
 {
-	if (cmd <= NUM_ELEMS(eng_linuxcmd))
+	if (cmd < NUM_ELEMS(eng_linuxcmd))
 		return eng_linuxcmd[cmd].type;
 	else
 		return CMD_INVALID_TYPE;
@@ -143,17 +143,64 @@ int eng_linuxcmd_rpoweron(char *req, char *rsp)
 	return 0;
 }
 
+static int eng_get_device_from_path(const char *path, char *device_name)
+{
+	char device[256];
+	char mount_path[256];
+	char rest[256];
+	FILE *fp;
+	char line[1024];
+
+	if (!(fp = fopen("/proc/mounts", "r"))) {
+		SLOGE("Error opening /proc/mounts (%s)", strerror(errno));
+		return 0;
+	}
+
+	while(fgets(line, sizeof(line), fp)) {
+		line[strlen(line)-1] = '\0';
+		sscanf(line, "%255s %255s %255s\n", device, mount_path, rest);
+		if (!strcmp(mount_path, path)) {
+			strcpy(device_name,device);
+			fclose(fp);
+			return 1;
+		}
+
+	}
+
+	fclose(fp);
+	return 0;
+}
+
 int eng_linuxcmd_factoryreset(char *req, char *rsp)
 {	
 	int ret = 1;
 	char cmd[]="--wipe_data";
 	int fd;
+	char device_name[256];
+	char convert_name[256];
+	char format_cmd[1024];
+	const char* externalStorage = getenv("SECONDARY_STORAGE");
+	static char MKDOSFS_PATH[] = "/system/bin/newfs_msdos";
+
 	mode_t mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
 
 	ENG_LOG("Call %s\n",__FUNCTION__);
 
+#ifdef CONFIG_EMMC
+	/*format internal sd card. code from vold*/
+	memset(device_name,0,256);
+	if (eng_get_device_from_path(externalStorage,device_name)){
+		memset(convert_name,0,256);
+		sprintf(convert_name,"/dev/block/mmcblk0p%d",atoi(strchr(device_name,':')+1));
+		memset(format_cmd,0,1024);
+		sprintf(format_cmd,"%s -F 32 -O android %s",MKDOSFS_PATH,convert_name);
+		system(format_cmd);
+	} else {
+		LOGE("do not format /mnt/internal");
+	}
+#endif
 	//delete files in ENG_RECOVERYDIR
-	system("rm -rf /cache/recovery");
+	system("rm -r /cache/recovery");
 
 	//mkdir ENG_RECOVERYDIR
 	if(mkdir(ENG_RECOVERYDIR, mode) == -1) {
@@ -173,16 +220,20 @@ int eng_linuxcmd_factoryreset(char *req, char *rsp)
 	ret = write(fd, cmd, strlen(cmd));
 	if(ret < 0) {
 		ret = 0;
+                close(fd);
 		ENG_LOG("%s: write %s fail [%s]\n",__FUNCTION__, ENG_RECOVERYCMD, strerror(errno));
+
 		goto out;
 	}
 	if (eng_sql_string2string_set("factoryrst", "DONE")==-1) {
 		ret = 0;
+                close(fd);
 		ENG_LOG("%s: set factoryrst fail\n",__FUNCTION__);
 		goto out;
 	}
 
 	sync();
+        close(fd);
 	__reboot(LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2,
                  LINUX_REBOOT_CMD_RESTART2, "recovery");
 out:
@@ -219,13 +270,13 @@ int eng_linuxcmd_keypad(char *req, char *rsp)
 		keycode++;
 		ENG_LOG("%s: keycode = %s\n",__FUNCTION__, keycode);
 		fd = open(ENG_KEYPAD_PATH, O_RDWR);
-		if(fd > 0) {
+		if(fd >= 0) {
 			ENG_LOG("%s: send keycode to emulator\n",__FUNCTION__);
 			write(fd, keycode, strlen(keycode));
 		} else {
 			ENG_LOG("%s: open %s fail [%s]\n",__FUNCTION__, ENG_KEYPAD_PATH, strerror(errno));
 		}
-		if(fd > 0)
+		if(fd >= 0)
 			close(fd);
 		sprintf(rsp, "%s%s", SPRDENG_OK, ENG_STREND);
 		ret = 0;
@@ -259,7 +310,7 @@ int eng_linuxcmd_vbat(char *req, char *rsp)
 		sprintf(rsp, "%s%s", SPRDENG_ERROR, ENG_STREND);
 	}
 
-	if(fd > 0)
+	if(fd >= 0)
 		close(fd);
 
 	ENG_LOG("%s: rsp=%s\n",__FUNCTION__,rsp);
@@ -288,7 +339,7 @@ int eng_linuxcmd_stopchg(char *req, char *rsp)
 		sprintf(rsp, "%s%s", SPRDENG_ERROR, ENG_STREND);
 	}
 
-	if(fd > 0)
+	if(fd >= 0)
 		close(fd);
 	ENG_LOG("%s: rsp=%s\n",__FUNCTION__,rsp);
 	return 0;
@@ -481,7 +532,7 @@ int eng_linuxcmd_getich(char *req, char *rsp)
 		sprintf(rsp, "%s%s", SPRDENG_ERROR, ENG_STREND);
 	}
 
-	if(fd > 0)
+	if(fd >= 0)
 		close(fd);
 
 	ENG_LOG("%s: rsp=%s\n",__FUNCTION__,rsp);
@@ -695,7 +746,7 @@ int eng_linuxcmd_chargertest(char *req, char *rsp)
 			if(status==1) {
 				ENG_LOG("%s: Create %s",__FUNCTION__,ENG_CHARGERTEST_FILE); 
 				fd=open(ENG_CHARGERTEST_FILE, O_RDWR|O_CREAT|O_TRUNC);
-				if(fd > 0)
+				if(fd >= 0)
 					close(fd);
 				sprintf(rsp, "%s\r\n", SPRDENG_OK);
 

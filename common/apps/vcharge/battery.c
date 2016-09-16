@@ -28,6 +28,7 @@ int parse_data(char * buf, int buf_len)
     uint32_t battery_0 = 0;
     uint32_t battery_1 = 1;
 
+    errno = 0;
     adc_0 = strtol(buf, (char **)NULL, 16);
     if(errno == EINVAL){
         LOGE("input data format error\n");

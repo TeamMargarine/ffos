@@ -33,16 +33,16 @@ public class EngTestingBroadcastReceiver extends BroadcastReceiver {
 package com.spreadtrum.android.eng;
 
 import static android.provider.Telephony.Intents.SECRET_CODE_ACTION;
-
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Debug;
 import android.util.Log;
 
 
 public class  EngTestingBroadcastReceiver extends BroadcastReceiver {
-
+    private static final boolean DEBUG = Debug.isDebug();
     public EngTestingBroadcastReceiver() {
     }
 
@@ -52,7 +52,7 @@ public class  EngTestingBroadcastReceiver extends BroadcastReceiver {
             Uri uri = intent.getData();
             String host = uri.getHost();
             
-            Log.d("abel", "uri="+uri);
+            if(DEBUG) Log.d("abel", "uri="+uri);
             Intent i = new Intent(Intent.ACTION_MAIN);
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             

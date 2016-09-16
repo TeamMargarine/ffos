@@ -21,7 +21,6 @@
 #include	<stdint.h>
 #include	<stddef.h>
 #include	<sys/types.h>
-#include	"eut_opt.h"
 
 #ifdef __cplusplus
 extern "C" {

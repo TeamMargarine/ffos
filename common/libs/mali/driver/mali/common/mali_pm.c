@@ -405,7 +405,7 @@ static void mali_pm_event(enum mali_pm_event pm_event, mali_bool schedule_work, 
 			MALI_DEBUG_ASSERT( MALI_PM_SCHEME_OS_SUSPENDED    != current_scheme );
 			break;
 		case MALI_PM_EVENT_CORES_IDLE:
-			next_level_dynamic = MALI_PM_LEVEL_3_LIGHT_SLEEP;
+			next_level_dynamic = MALI_PM_LEVEL_2_STANDBY;
 			/*MALI_DEBUG_ASSERT( MALI_PM_SCHEME_OS_SUSPENDED    != current_scheme );*/
 			break;
 		case MALI_PM_EVENT_TIMER_LIGHT_SLEEP:

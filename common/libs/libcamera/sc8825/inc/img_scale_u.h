@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef _IMAGE_SCALE_USER_H_
 #define _IMAGE_SCALE_USER_H_
 

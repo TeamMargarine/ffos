@@ -61,13 +61,13 @@ public class FlashBlockInfo extends Activity {
         	reader = null;
         	mFlashblock.setText(tmpString);
         } catch (IOException e) {
-            Log.d(LOG_TAG,"Read file failed.");
+            Log.e(LOG_TAG,"Read file failed.");
         }finally{
             if(reader != null){
                 try {
                 	reader.close();
 	            } catch (IOException e) {
-					Log.d(LOG_TAG,"Read file failed.");
+					Log.e(LOG_TAG,"Read file failed.");
 				}
              }
         }

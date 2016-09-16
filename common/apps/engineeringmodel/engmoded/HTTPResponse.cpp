@@ -21,7 +21,6 @@ void HTTPResponse::printResponse()
 {
 	cout<<"---Response Begin---"<<endl<<m_data
 		<<"---Response End---"<<endl;
-	LOG("engmoded: info: result:%s",m_data);
 }
 
 void HTTPResponse::addData(const char *buf, const int&len)

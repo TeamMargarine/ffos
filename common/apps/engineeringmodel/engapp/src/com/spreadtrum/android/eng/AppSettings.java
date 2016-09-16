@@ -8,6 +8,7 @@ import java.io.IOException;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.SystemProperties;
 import android.preference.CheckBoxPreference;
 import android.preference.Preference;
@@ -17,6 +18,7 @@ import android.provider.Settings;
 import android.util.Log;
 
 public class AppSettings extends PreferenceActivity {
+    private static final boolean DEBUG = Debug.isDebug();
     private static final String LOG_TAG = "engineeringmodel";
 
     private static final String CALL_FORWARD_QUERY = "call_forward_query";
@@ -34,6 +36,8 @@ public class AppSettings extends PreferenceActivity {
 
     private static final String MODEM_RESET = "modem_reset";
 
+    private static final String POWERON_SSIM = "poweron_ssim";
+
     private static final String ENG_TESTMODE = "engtestmode";
 
     private CheckBoxPreference mAutoAnswer;
@@ -41,7 +45,10 @@ public class AppSettings extends PreferenceActivity {
     private CheckBoxPreference mAcceRotation;
     private CheckBoxPreference mEnableUsbFactoryMode;
     private CheckBoxPreference mModemReset;
+    private CheckBoxPreference mPowerOnSsim;
+    private CheckBoxPreference mCallForwardQuery;
     private EngSqlite mEngSqlite;
+    public static final boolean ORANGE_SUPPORT = SystemProperties.get("ro.support").equals("orange");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,10 +60,28 @@ public class AppSettings extends PreferenceActivity {
         mAcceRotation = (CheckBoxPreference)findPreference(ACCELEROMETER);
         mEnableUsbFactoryMode = (CheckBoxPreference)findPreference(ENABLE_USB_FACTORY_MODE);
         mModemReset = (CheckBoxPreference)findPreference(MODEM_RESET);
+        mPowerOnSsim = (CheckBoxPreference)findPreference(POWERON_SSIM);
+        // Bug 189027 start
+        int isCallforward = 0;
+
+        // Disable call forward query with Orange feature
+        if(ORANGE_SUPPORT == false) {
+            isCallforward = SystemProperties.getInt("persist.sys.callforwarding", 1);
+        } else {
+            isCallforward = SystemProperties.getInt("persist.sys.callforwarding", 0);
+        }
+
+        mCallForwardQuery = (CheckBoxPreference)findPreference(CALL_FORWARD_QUERY);
+        mCallForwardQuery.setChecked((isCallforward == 1));
+        // Bug 189027 end
 
         String result = SystemProperties.get("persist.sys.sprd.modemreset");
-        Log.e(LOG_TAG, "result: "+ result + ", result.equals(): " + (result.equals("1")));
+        if(DEBUG) Log.d(LOG_TAG, "result: "+ result + ", result.equals(): " + (result.equals("1")));
         mModemReset.setChecked(result.equals("1"));
+        String poweronssim = SystemProperties.get("persist.sys.sprd.powerssim");
+        Log.d(LOG_TAG, "poweronssim: "+ poweronssim + ", poweronssim.equals(): " + (poweronssim.equals("1")));
+        mPowerOnSsim.setChecked(poweronssim.equals("1"));
+
         mEngSqlite = EngSqlite.getInstance(this);
     }
 
@@ -68,7 +93,7 @@ public class AppSettings extends PreferenceActivity {
     	}
 		mAcceRotation.setChecked(check);
         String usbMode = SystemProperties.get("sys.usb.config", "");
-        Log.e(LOG_TAG, " usbMode = " + usbMode);
+        if(DEBUG) Log.d(LOG_TAG, " usbMode = " + usbMode);
         mEnableVserGser.setChecked(usbMode.endsWith("vser,gser"));
         boolean test = mEngSqlite.queryData(ENG_TESTMODE);
         if (!test) {
@@ -78,7 +103,7 @@ public class AppSettings extends PreferenceActivity {
             mEnableUsbFactoryMode.setChecked(mode == 1);
         }
         
-    	super.onStart();
+	super.onResume();
     }
 
     @Override
@@ -105,7 +130,7 @@ public class AppSettings extends PreferenceActivity {
 				getApplicationContext().stopService(new Intent(getApplicationContext(), AutoAnswerService.class));
 			}
 
-			Log.e(LOG_TAG, "auto answer state "+newState);
+			if(DEBUG)  Log.d(LOG_TAG, "auto answer state "+newState);
 			return true;
 		//add by liguxiang 07-12-11 for engineeringmoodel usb settings begin
 	}else if(preference == mEnableVserGser){
@@ -132,22 +157,36 @@ public class AppSettings extends PreferenceActivity {
         final String key = preference.getKey();
 
         if (CALL_FORWARD_QUERY.equals(key)) {
-            SystemProperties.set("persist.sys.callforwarding", ((CheckBoxPreference) preference)
+	    if(preference instanceof CheckBoxPreference){
+                SystemProperties.set("persist.sys.callforwarding", ((CheckBoxPreference) preference)
                     .isChecked() ? "1" : "0");
+	    }
             return true;
         } else if (AUTO_RETRY_DIAL.equals(key)) {
+	    if(preference instanceof CheckBoxPreference){
             SystemProperties.set("persist.sys.emergencyCallRetry", ((CheckBoxPreference) preference)
                     .isChecked() ? "1" : "0");
+	    }
             return true;
         } else if (CARD_LOG.equals(key)) {
+	    if(preference instanceof CheckBoxPreference){
             SystemProperties.set("persist.sys.cardlog", ((CheckBoxPreference) preference)
                     .isChecked() ? "1" : "0");
+            }
             return true;
         } else if ("modem_reset".equals(key)) {
+            if(preference instanceof CheckBoxPreference){
 	    SystemProperties.set("persist.sys.sprd.modemreset",
 		((CheckBoxPreference) preference).isChecked() ? "1" : "0");
+            }
             return true;
-	}else{
+	} else if (POWERON_SSIM.equals(key)) {
+	    if(preference instanceof CheckBoxPreference){
+		  SystemProperties.set("persist.sys.sprd.powerssim",((CheckBoxPreference) preference).isChecked() ? "1" : "0");
+		}
+		return true;
+	}
+	else{
             return false;
         }
 

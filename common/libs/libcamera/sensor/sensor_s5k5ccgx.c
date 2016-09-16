@@ -1,19 +1,22 @@
-/*
- * Copyright (C) 2008 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/******************************************************************************
+ ** Copyright (c) 
+ ** File Name:		sensor_s5k5ccgx.c 										  *
+ ** Author: 		dhee79.lee@samsung.com											  *
+ ** DATE:			2012.05.03												  *
+ ** Description:   This file contains driver for sensor S5K5CCGX. 
+ ** 														 
+ ******************************************************************************
 
+ ******************************************************************************
+ ** 					   Edit History 									  *
+ ** ------------------------------------------------------------------------- *
+ ** DATE		   NAME 			DESCRIPTION 							  *
+ ** 	  
+ ******************************************************************************/
+
+/**---------------------------------------------------------------------------*
+ ** 						Dependencies									  *
+ **---------------------------------------------------------------------------*/
 #include "sensor.h"
 
 //#include <mach/ldo.h>
@@ -126,7 +129,7 @@ typedef enum
 LOCAL SENSOR_REG_TAB_INFO_T s_s5k5ccgx_resolution_Tab_YUV[]=
 {	 
 	// COMMON INIT
-	{&reg_main_init, NUMBER_OF_ARRAY(reg_main_init),640, 480, 24, SENSOR_IMAGE_FORMAT_YUV422}, 
+	{(SENSOR_REG_T_PTR)&reg_main_init[0], NUMBER_OF_ARRAY(reg_main_init),640, 480, 24, SENSOR_IMAGE_FORMAT_YUV422}, 
 
 	// YUV422 PREVIEW 1 		
 	{PNULL, 0, 0, 0, 0, 0},
@@ -189,8 +192,13 @@ LOCAL SENSOR_IOCTL_FUNC_TAB_T s_s5k5ccgx_ioctl_func_tab =
     s5k5ccgx_set_Metering,/*40*/// set mertering
     PNULL, /*41*///get_status
     PNULL, /*42*///stream_on
-    PNULL, /*43*/ // stream_off
-    s5k5ccgx_set_FPS,
+#ifdef CONFIG_CAMERA_SENSOR_NEW_FEATURE
+	PNULL,
+	PNULL
+#else
+	PNULL
+#endif
+/*    s5k5ccgx_set_FPS,*/
 };
 
 
@@ -237,7 +245,7 @@ SENSOR_INFO_T g_s5k5ccgx_yuv_info =
 	SENSOR_LOW_LEVEL_PWDN,		// 1: high level valid; 0: low level valid
 	
 	1,								// count of identify code
-	{0x04, 0x84},						// supply two code to identify sensor.
+	{{0x04, 0x84}},						// supply two code to identify sensor.
 									// for Example: index = 0-> Device id, index = 1 -> version id	
 									// supply two code to identify sensor.
 	                       					// for Example: index = 0-> Device id, index = 1 -> version id		
@@ -253,7 +261,7 @@ SENSOR_INFO_T g_s5k5ccgx_yuv_info =
 
 	SENSOR_IMAGE_PATTERN_YUV422_UYVY,	// pattern of input image form sensor;
 	
-	&s_s5k5ccgx_resolution_Tab_YUV,	// point to resolution table information structure
+	s_s5k5ccgx_resolution_Tab_YUV,	// point to resolution table information structure
 	&s_s5k5ccgx_ioctl_func_tab,		// point to ioctl function table
 			
 	PNULL,							// information and table about Rawrgb sensor
@@ -965,6 +973,10 @@ LOCAL uint32_t s5k5ccgx_set_FPS(uint32_t fps_mode)
 LOCAL uint32_t s5k5ccgx_BeforeSnapshot(uint32_t param)
 {
 	uint32_t sensorlight;
+	uint32_t cap_mode = (param>>CAP_MODE_BITS);
+
+	param = param&0xffff;
+	SENSOR_PRINT("%d,%d.",cap_mode,param);
 
 	CAM_DEBUG("s5k5ccgx_BeforeSnapsho: mode = %d", param);
 	
@@ -1300,7 +1312,7 @@ LOCAL uint32_t s5k5ccgx_I2C_write(SENSOR_REG_T* sensor_reg_ptr)
 uint8_t s5k5ccgx_buf_for_burstmode[BURST_MODE_BUFFER_MAX_SIZE];
 LOCAL uint32_t s5k5ccgx_init_by_burst_write(uint32_t param)
 {
-    int i = 0;
+    uint32_t i = 0;
     int idx = 0;
     int err = -1;
     int retry = 0;

@@ -19,5 +19,12 @@
 			<Preference android:key="key_plmnselect"
 				android:title="PLMN Select"
 				android:summary="Equal Plmn Info" />
+<!-- Add 20130523 Spreadst of add RILD  control UI start -->
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:key="key_rildsetting"
+        android:title="Rild Setting" >
+    </CheckBoxPreference>
+<!-- Add 20130523 Spreadst of add RILD  control UI end -->
 </PreferenceScreen>
 

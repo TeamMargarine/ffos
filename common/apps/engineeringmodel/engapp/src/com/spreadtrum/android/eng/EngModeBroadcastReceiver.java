@@ -5,10 +5,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Debug;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
 public class EngModeBroadcastReceiver extends BroadcastReceiver {
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String TAG = "EngModeBroadcastReceiver";
 
 	@Override
@@ -28,11 +30,11 @@ public class EngModeBroadcastReceiver extends BroadcastReceiver {
 				if (exist) {
 					SharedPreferences.Editor editor = pref.edit();
 					boolean v = pref.getBoolean(logswitch.KEY_CAPLOG, false);
-					Log.d(TAG, "cap_log values : " + v);
+					if(DEBUG) Log.d(TAG, "cap_log values : " + v);
 					editor.putBoolean(logswitch.KEY_CAPLOG, false);
 					editor.apply();
 				}else{
-					Log.d(TAG, "cap_log values not exist !");
+					Log.e(TAG, "cap_log values not exist !");
 				}
 			}
 		}

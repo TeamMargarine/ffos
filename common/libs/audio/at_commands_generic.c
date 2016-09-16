@@ -261,17 +261,6 @@ int at_cmd_volume(float vol, int mode)
     return 0;
 }
 
-int at_cmd_downlink_mute(bool mute)
-{
-    char r_buf[32];
-    const char *at_cmd;
-    ALOGW("audio at_cmd_downlink_mute set %d", mute);
-    if (mute) at_cmd = "AT+SDMUT=1";
-    else at_cmd = "AT+SDMUT=0";
-    do_cmd(at_cmd);
-    return 0;
-}
-
 int at_cmd_mic_mute(bool mute)
 {
     char r_buf[32];

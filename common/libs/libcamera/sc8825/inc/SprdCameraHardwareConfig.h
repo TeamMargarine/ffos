@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2008 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #ifndef _SPRD_CAMERA_HARDWARE_CONFIG_H_
 #define _SPRD_CAMERA_HARDWARE_CONFIG_H_
 
@@ -156,6 +140,13 @@ typedef enum
     CAMERA_FLASH_MODE_MAX
 } camera_flash_mode_type;
 
+typedef enum
+{
+    CAMERA_RECORDING_FALSE = 0,
+    CAMERA_RECORDING_TRUE = 1,
+    CAMERA_RECORDING_MAX
+} camera_recording_hint_type;
+
 struct str_map {
         const char *const desc;
         int val;
@@ -188,7 +179,7 @@ struct str_map {
         { "night", CAMERA_SCENE_MODE_NIGHT },
         { "portrait", CAMERA_SCENE_MODE_PORTRAIT },
         { "landscape", CAMERA_SCENE_MODE_LANDSCAPE },
-		{ "action", CAMERA_SCENE_MODE_ACTION},
+	{ "action", CAMERA_SCENE_MODE_ACTION},
 		{ "normal", CAMERA_SCENE_MODE_NORMAL},
         { NULL, 0 }
    };
@@ -283,27 +274,34 @@ const struct str_map exposure_compensation_map[] = {
         { NULL, 0 }
    };
 
+const struct str_map recording_hint_map[] = {
+    { "false",  CAMERA_RECORDING_FALSE},
+    { "true",   CAMERA_RECORDING_TRUE},
+    { NULL, 0 }
+};
 
 struct config_element{
 	const char *const key;
 	const char *const value;
 };
 struct config_element sprd_front_camera_hardware_config[] = {
-        {"whitebalance-values",
-         "auto,incandescent,fluorescent,daylight,cloudy-daylight"},
-        {"whitebalance", "auto"},
-#if defined(CONFIG_CAMERA_SUPPORT_5M) || defined(CONFIG_CAMERA_SUPPORT_8M)
-	{"picture-size-values", "2048x1536,1600x1200,1280x960,640x480"},
-#else
-	{"picture-size-values", "1600x1200,1280x960,640x480"},
-#endif
-         {"picture-size", "640x480"},
+    {"whitebalance-values",
+     "auto,incandescent,fluorescent,daylight,cloudy-daylight"},
+    {"whitebalance", "auto"},
+/*	{"picture-size-values", "2048x1536,1600x1200,1280x960,640x480"},*/
+	{"picture-size-values", "1280x960,640x480"},
+    {"picture-size", "640x480"},
 	{"preview-size-values",
 	 "640x480,352x288,320x240,176x144"},
 	 {"preview-size", "640x480"},
-	{"video-size-values",  "720x480,352x288,320x240,176x144"},
-	 {"video-size", "176x144"},
-	 {"preferred-preview-size-for-video", "320x240"},
+#ifndef CONFIG_CAMERA_SUPPORT_CIF
+	{"video-size-values",  "720x480,352x288,176x144"},
+	 {"video-size", "720x480"},
+#else
+	{"video-size-values",  "352x288,176x144"},
+	{"video-size", "352x288"},
+#endif
+	 {"preferred-preview-size-for-video", "352x288"},
 	{"video-frame-format-values", "yuv420sp,yuv420p"},
 	{"video-frame-format", "yuv420sp"},
 	{"preview-format-values", "yuv420sp,,yuv420p"},
@@ -359,11 +357,13 @@ struct config_element sprd_front_camera_hardware_config[] = {
 #endif
     {"focus-mode-values", "infinity"},
     {"focus-mode", "infinity"},
-        {"focus-distances", "2.0,2.5,3.75,Infinity"},
-	{"max-num-detected-faces-hw", "0"},
+    {"focus-distances", "2.0,2.5,Infinity"},
+	{"max-num-detected-faces-hw", "5"},
 	{"smile-snap-mode","0"},
 	{"hdr-supported","false"},
-	{"hdr","0"}
+	{"hdr","0"},
+    {"null-window","0"},
+    {"capture-mode", "1"}
 };
 struct config_element sprd_back_camera_hardware_config[] = {
 	{"whitebalance-values",
@@ -380,11 +380,16 @@ struct config_element sprd_back_camera_hardware_config[] = {
 #endif
 	 {"picture-size", "640x480"},
 	{"preview-size-values",
-	 "640x480,352x288,320x240,176x144"},
+	"640x480,352x288,176x144"},
 	 {"preview-size", "640x480"},
-	{"video-size-values", "1280x720,720x480,352x288,320x240,176x144"},
-	{"video-size", "176x144"},
-	{"preferred-preview-size-for-video", "320x240"},
+#ifndef CONFIG_CAMERA_SUPPORT_720P
+	{"video-size-values", "720x480,352x288,176x144"},
+	{"video-size", "720x480"},
+#else
+	{"video-size-values", "1280x720,720x480,352x288,176x144"},
+	{"video-size", "1280x720"},
+#endif
+	{"preferred-preview-size-for-video", "352x288"},
 	{"video-frame-format-values", "yuv420sp,yuv420p"},
 	{"video-frame-format", "yuv420sp"},
 	{"preview-format-values", "yuv420sp,yuv420p"},
@@ -441,7 +446,7 @@ struct config_element sprd_back_camera_hardware_config[] = {
 	{"flash-mode", "off"},
 	{"flash-mode-supported", "true"},
         {"focus-distances", "2.0,2.5,3.75"},
-	{"max-num-detected-faces-hw", "0"},
+	{"max-num-detected-faces-hw", "5"},
 	{"max-num-focus-areas", "3"},
 	{"iso-supported", "true"},
 	{"max-iso", "5"},
@@ -449,7 +454,9 @@ struct config_element sprd_back_camera_hardware_config[] = {
 	{"iso", "auto"},
 	{"smile-snap-mode","0"},
 	{"hdr-supported","true"},
-	{"hdr","0"}
+	{"hdr","0"},
+    {"null-window","0"},
+    {"capture-mode", "1"}
 };
 
 #endif //_SPRD_CAMERA_HARDWARE_CONFIG_H_

@@ -1,3 +1,4 @@
+ifneq ($(TARGET_SIMULATOR),true)
 LOCAL_PATH:= $(call my-dir)
 
 
@@ -73,3 +74,4 @@ LOCAL_SHARED_LIBRARIES := \
 include $(BUILD_SHARED_LIBRARY)
 
 include $(LOCAL_PATH)/driver/Android.mk
+endif

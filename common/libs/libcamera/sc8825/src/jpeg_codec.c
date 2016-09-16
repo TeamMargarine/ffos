@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "exif_writer.h"
 #include "cmr_msg.h"
 #include "jpeg_codec.h"
@@ -24,7 +23,7 @@
 
 #define JPEG_MSG_QUEUE_SIZE		  40
 #define JPEG_EXIT_THREAD_FLAG	  1
-#define JPEG_SLICE_HEIGHT         128
+#define JPEG_SLICE_HEIGHT         512
 #define JPEG_BUF_RES_SIZE         256
 #define JPEG_DECODE_FW_BUF_SIZE   (20*1024)
 #define JPEG_EVT_ENC_START	      (1 << 16)
@@ -841,9 +840,9 @@ static void* _thread_proc(void* data)
 			break;
 		case  JPEG_EVT_DEC_NEXT:
 			if(0 != message.data) {
-			dec_param_ptr = (struct jpeg_dec_next_param*)message.data;
-			handle_ptr = (JPEG_HANDLE_T*)dec_param_ptr->handle;
-			handle = handle_ptr->handle;
+				dec_param_ptr = (struct jpeg_dec_next_param*)message.data;
+				handle_ptr = (JPEG_HANDLE_T*)dec_param_ptr->handle;
+				handle = handle_ptr->handle;
 				ret = _dec_next( handle, (struct jpeg_dec_next_param *)message.data);
 			} else {
 				ret = JPEG_CODEC_PARAM_ERR;

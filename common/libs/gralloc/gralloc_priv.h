@@ -49,7 +49,6 @@ struct private_module_t
 	uint32_t numBuffers;
 	uint32_t bufferMask;
 	pthread_mutex_t lock;
-	pthread_mutex_t fd_lock;
 	buffer_handle_t currentBuffer;
 	int ion_client;
 

@@ -10,12 +10,4 @@ typedef enum {HTTP1_0, HTTP1_1, HTTP_UNSUPPORTED} Protocol;
 #define LF	'\n'
 #define	CRLF	"\r\n"
 
-#ifdef BUILD_ENG
-#include <utils/Log.h>
-#define LOG 
-//ALOGD
-#else
-#define LOG printf
-#endif
-
 #endif	/* _HTTP_H_ */

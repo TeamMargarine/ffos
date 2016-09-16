@@ -141,8 +141,8 @@
 
         <EncoderProfile quality="480p" fileFormat="mp4" duration="60">
             <Video codec="m4v"
-                   bitRate="6000000"
-                   width="720"
+                   bitRate="4000000"
+                   width="640"
                    height="480"
                    frameRate="31" />
             <Audio codec="amrnb"
@@ -153,8 +153,8 @@
 
         <EncoderProfile quality="timelapse480p" fileFormat="mp4" duration="60">
             <Video codec="m4v"
-                   bitRate="6000000"
-                   width="720"
+                   bitRate="4000000"
+                   width="640"
                    height="480"
                    frameRate="31" />
             <!-- audio setting is ignored -->
@@ -226,7 +226,7 @@
         <EncoderProfile quality="480p" fileFormat="mp4" duration="60">
             <Video codec="m4v"
                    bitRate="4000000"
-                   width="720"
+                   width="640"
                    height="480"
                    frameRate="15" />
             <Audio codec="amrnb"
@@ -238,7 +238,7 @@
         <EncoderProfile quality="timelapse480p" fileFormat="mp4" duration="60">
             <Video codec="m4v"
                    bitRate="4000000"
-                   width="720"
+                   width="640"
                    height="480"
                    frameRate="15" />
             <!-- audio setting is ignored -->

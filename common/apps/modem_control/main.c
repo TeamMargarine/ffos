@@ -6,15 +6,16 @@
 #include <cutils/sockets.h>
 #include <pthread.h>
 #include <utils/Log.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <errno.h>  
 #include <ctype.h>
 #include <dirent.h>	
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <signal.h>
 #include "cutils/properties.h" 	      
 #include "packet.h"
 
-#define	MODEM_SOCKET_NAME	"modemstate"
+#define	MODEM_SOCKET_NAME	"modemd"
 #define	MAX_CLIENT_NUM		10
 #define	MODEM_PATH		"/dev/vbpipe2"
 #define	MODEM_STATE_PATH	"/sys/devices/platform/modem_interface/state"
@@ -44,6 +45,20 @@ static MODEM_STA_E modem_state = MODEM_STA_SHUTDOWN;
 static int flash_less_flag = 0xff;
 
 #define MONITOR_APP	"/system/bin/sprd_monitor"
+static int reset_modem_if_assert(void)
+{
+    char prop[16]={0};
+
+    property_get("persist.sys.sprd.modemreset", prop, "");
+
+    printf("modem reset: %s\n", prop);
+
+    if(!strncmp(prop, "1", 2)){
+	return 1;
+    }
+    return 0;
+}
+
 static int poweron_by_charger(void)
 {
     char charge_prop[16]={0};
@@ -72,15 +87,18 @@ static int get_task_pid(char *name)
             int fd, ret;
             sprintf(cmdline, "/proc/%d/cmdline", pid);
             fd = open(cmdline, O_RDONLY);
-            if (fd <= 0) continue;
+            if (fd < 0) continue;
             ret = read(fd, cmdline, 1023);
             close(fd);
             if (ret < 0) ret = 0;
             cmdline[ret] = 0;
-            if (strcmp(name, cmdline) == 0)
-            return pid;
+            if (strcmp(name, cmdline) == 0) {
+                closedir(d);
+                return pid;
+            }
         }
     }
+    closedir(d);
     return -1;
 }
 static void print_log_data(char *buf, int cnt)
@@ -108,6 +126,7 @@ static int get_modem_state(char *buffer,size_t size)
 	if(numRead > 0){
 		printf("modem_state = %s\n",buffer);
 	} else{
+		printf("modem_state error...\n");
 		return 0;
 	}
 	return numRead;
@@ -133,7 +152,7 @@ static void *modemd_listenaccept_thread(void *par)
 		client_fd[i]=-1;
 	
 	sfd = socket_local_server(MODEM_SOCKET_NAME, 
-		ANDROID_SOCKET_NAMESPACE_RESERVED, SOCK_STREAM);
+		0,/*ANDROID_SOCKET_NAMESPACE_RESERVED,*/ SOCK_STREAM);
 	if (sfd < 0) {
 		printf("modemd_listenaccept_thread: cannot create local socket server\n");
 		exit(-1);
@@ -163,10 +182,12 @@ static int get_modem_assert_information(char *assert_info,int size)
         extern int open_uart_device(int mode);
         char ch, *buffer;
         int     read_len=0,ret=0,timeout;
-        int uart_fd = open_uart_device(1);
 
         if((assert_info == NULL) || (size == 0))
                 return 0;
+
+        int uart_fd = open_uart_device(1);
+
         if(uart_fd < 0){
                printf("open_uart_device failed \n");
                return 0;
@@ -208,7 +229,13 @@ static void broadcast_modem_state(char *message,int size)
 		if(client_fd[i] > 0) {
 			printf("client_fd[%d]=%d\n",i, client_fd[i]);
 			ret = write(client_fd[i], message, size);
-			printf("write %d bytes to client socket [%d] to reset modem\n", ret, client_fd[i]);
+			if(ret > 0)
+				printf("write %d bytes to client socket [%d] to reset modem\n", ret, client_fd[i]);
+			else {
+				printf("%s error: %s\n",__func__,strerror(errno));
+				close(client_fd[i]);
+				client_fd[i] = -1;
+			}
 		}
 	}
 }
@@ -251,8 +278,10 @@ static void process_modem_state_message(char *message,int size)
 					modem_state = MODEM_STA_ALIVE;
 					printf("modem_state0 = MODEM_STA_ALIVE\n"); 
 					pid = get_task_pid(MONITOR_APP);
-					if((pid > 0)&&(!first_alive))
+					if((pid > 0)&&(!first_alive)){
 						kill(pid, SIGUSR2);
+						printf("Send SIGUSR2 to MONITOR_APP\n"); 
+					}
 				} else {
 					modem_state = MODEM_STA_BOOT;
 					printf("modem_state1 = MODEM_STA_BOOT\n");
@@ -278,11 +307,17 @@ static void process_modem_state_message(char *message,int size)
 				if(alive_status == 1){
 					int pid;
 					modem_state = MODEM_STA_ALIVE;
-					printf("modem_state0 = MODEM_STA_ALIVE\n"); 
+					printf("modem_state5 = MODEM_STA_ALIVE\n"); 
 					broadcast_modem_state("Modem Alive",strlen("Modem Alive"));
+                                        /*start bt&wifi set mac app*/
+                                        if(first_alive)
+                                            property_set("ctl.start", "engsetmacaddr");
+
 					pid = get_task_pid(MONITOR_APP);
-					if((pid > 0)&&(!first_alive))
+					if((pid > 0)&&(!first_alive)){
 						kill(pid, SIGUSR2);
+						printf("Send SIGUSR2 to MONITOR_APP\n"); 
+					}
 				}
 			}
 		break;
@@ -299,7 +334,13 @@ static void process_modem_state_message(char *message,int size)
                                 }
 			}
 			
-			if(reset_status==1){
+			if((reset_status==1) || reset_modem_if_assert()){
+				int pid;
+				pid = get_task_pid(MONITOR_APP);
+				if((pid > 0)&&(!first_alive)){
+					kill(pid, SIGUSR1);
+					printf("Send SIGUSR1 to MONITOR_APP\n");
+				}
 				printf("modem_state2 = MODEM_STA_BOOT\n");
 				modem_state = MODEM_STA_BOOT;
 			}
@@ -308,7 +349,10 @@ static void process_modem_state_message(char *message,int size)
 		break;
 	}
 }
-
+void signal_pipe_handler(int sig_num)
+{
+	printf("receive signal SIGPIPE\n");
+}
 int main(int argc, char *argv[])
 {
 	int ret, i;
@@ -316,6 +360,8 @@ int main(int argc, char *argv[])
 	pthread_t t1;
 	int priority;
 	pid_t pid;
+	struct sigaction act;
+
 	int modem_state_fd = open(MODEM_STATE_PATH, O_RDONLY);
 
 	printf(">>>>>> start modem manager program ......\n");
@@ -327,10 +373,22 @@ int main(int argc, char *argv[])
 		printf("!!! Open %s failed, modem_reboot exit\n",MODEM_STATE_PATH);
 		return 0;
 	}
-	close(modem_state_fd);
+        memset (&act, 0x00, sizeof(act));
+        act.sa_handler = &signal_pipe_handler;
+        act.sa_flags = SA_NODEFER;
+        sigfillset(&act.sa_mask);   //block all signals when handler is running.
+        ret = sigaction (SIGPIPE, &act, NULL);
+        if (ret < 0) {
+            perror("sigaction() failed!\n");
+            exit(1);
+        }
+
 	pid = getpid();
 	priority = getpriority(PRIO_PROCESS,pid);
 	setpriority(PRIO_PROCESS,pid,-15);
+
+	close(modem_state_fd);
+
 	{
                 extern int get_modem_images_info(void);
                 extern void print_modem_image_info(void);

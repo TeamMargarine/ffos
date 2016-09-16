@@ -41,6 +41,8 @@ int camera_autofocus_init(void);
 int camera_autofocus(void);
 int camera_autofocus_start(void);
 int camera_autofocus_stop(void);
+int camera_before_autofocus(void);
+int camera_after_autofocus(void);
 int camera_set_ctrl(camera_parm_type id,
 			uint32_t          parm,
 			cmr_before_set_cb before_set,
@@ -48,6 +50,8 @@ int camera_set_ctrl(camera_parm_type id,
 int camera_isp_ctrl_done(uint32_t cmd, void* data);
 int camera_isp_af_done(void *data);
 int camera_set_hdr_ev(int ev_level);
+int camera_autofocus_sign_done(void);
+int camera_autofocus_need_exit(void);
 
 
 

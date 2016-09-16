@@ -23,12 +23,11 @@ static u64 period_start_time = 0;
 static u64 work_start_time = 0;
 static u64 accumulated_work_time = 0;
 
-#ifdef MALI_LOCAL_TIMER
 static _mali_osk_timer_t *utilization_timer = NULL;
 static mali_bool timer_running = MALI_FALSE;
-#endif
 
-u32 calculate_gpu_utilization(void* arg)
+
+static void calculate_gpu_utilization(void* arg)
 {
 	u64 time_now;
 	u64 time_period;
@@ -42,19 +41,15 @@ u32 calculate_gpu_utilization(void* arg)
 
 	if (accumulated_work_time == 0 && work_start_time == 0)
 	{
-#ifdef MALI_LOCAL_TIMER
 		/* Don't reschedule timer, this will be started if new work arrives */
 		timer_running = MALI_FALSE;
-#else
-		period_start_time = _mali_osk_time_get_ns(); /* starting a new period */
-#endif
 
 		_mali_osk_lock_signal(time_data_lock, _MALI_OSK_LOCKMODE_RW);
 
 		/* No work done for this period, report zero usage */
 		mali_gpu_utilization_handler(0);
 
-		return 0;
+		return;
 	}
 
 	time_now = _mali_osk_time_get_ns();
@@ -106,12 +101,11 @@ u32 calculate_gpu_utilization(void* arg)
 	period_start_time = time_now; /* starting a new period */
 
 	_mali_osk_lock_signal(time_data_lock, _MALI_OSK_LOCKMODE_RW);
-#ifdef MALI_LOCAL_TIMER
-	_mali_osk_timer_add(utilization_timer, _mali_osk_time_mstoticks(MALI_GPU_UTILIZATION_TIMEOUT));
-#endif
-	mali_gpu_utilization_handler(utilization);
 
-	return utilization;
+	_mali_osk_timer_add(utilization_timer, _mali_osk_time_mstoticks(MALI_GPU_UTILIZATION_TIMEOUT));
+
+
+	mali_gpu_utilization_handler(utilization);
 }
 
 _mali_osk_errcode_t mali_utilization_init(void)
@@ -125,7 +119,7 @@ _mali_osk_errcode_t mali_utilization_init(void)
 	}
 
 	_mali_osk_atomic_init(&num_running_cores, 0);
-#ifdef MALI_LOCAL_TIMER
+
 	utilization_timer = _mali_osk_timer_init();
 	if (NULL == utilization_timer)
 	{
@@ -133,24 +127,21 @@ _mali_osk_errcode_t mali_utilization_init(void)
 		return _MALI_OSK_ERR_FAULT;
 	}
 	_mali_osk_timer_setcallback(utilization_timer, calculate_gpu_utilization, NULL);
-#endif
+
 	return _MALI_OSK_ERR_OK;
 }
 
 void mali_utilization_suspend(void)
 {
-#ifdef MALI_LOCAL_TIMER
 	if (NULL != utilization_timer)
 	{
 		_mali_osk_timer_del(utilization_timer);
 		timer_running = MALI_FALSE;
 	}
-#endif
 }
 
 void mali_utilization_term(void)
 {
-#ifdef MALI_LOCAL_TIMER
 	if (NULL != utilization_timer)
 	{
 		_mali_osk_timer_del(utilization_timer);
@@ -158,7 +149,7 @@ void mali_utilization_term(void)
 		_mali_osk_timer_term(utilization_timer);
 		utilization_timer = NULL;
 	}
-#endif
+
 	_mali_osk_atomic_term(&num_running_cores);
 
 	_mali_osk_lock_term(time_data_lock);
@@ -185,7 +176,6 @@ void mali_utilization_core_start(u64 time_now)
 		}
 
 		work_start_time = time_now;
-#ifdef MALI_LOCAL_TIMER
 		if (timer_running != MALI_TRUE)
 		{
 			timer_running = MALI_TRUE;
@@ -196,7 +186,6 @@ void mali_utilization_core_start(u64 time_now)
 			_mali_osk_timer_add(utilization_timer, _mali_osk_time_mstoticks(MALI_GPU_UTILIZATION_TIMEOUT));
 		}
 		else
-#endif
 		{
 			_mali_osk_lock_signal(time_data_lock, _MALI_OSK_LOCKMODE_RW);
 		}

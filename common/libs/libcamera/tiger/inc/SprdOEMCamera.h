@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef ANDROID_HARDWARE_SPRD_OEM_CAMERA_H
 #define ANDROID_HARDWARE_SPRD_OEM_CAMERA_H
 
@@ -490,10 +489,10 @@ int camera_capture_get_buffer_size(uint32_t width,
 						uint32_t *size0, 
 						uint32_t *size1);
 int camera_set_capture_mem(uint32_t     cap_index,
-						uint32_t phy_addr0,
-						uint32_t vir_addr0,
+						uint32_t phy_addr0, 
+						uint32_t vir_addr0, 
 						uint32_t mem_size0,
-						uint32_t phy_addr1,
+						uint32_t phy_addr1, 
 						uint32_t vir_addr1,
 						uint32_t mem_size1);
 

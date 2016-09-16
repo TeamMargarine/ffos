@@ -1,18 +1,20 @@
 package com.spreadtrum.android.eng;
 
-import android.app.Activity;
-import android.view.View;
-import android.util.Log;
-import android.widget.TextView;
-import android.os.Bundle;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
+import android.widget.TextView;
 
 public class psverinfo extends Activity {
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String LOG_TAG = "psverinfo";
 	private TextView  mTextView01;
 	private int sockid = 0;
@@ -31,7 +33,7 @@ public class psverinfo extends Activity {
 		Thread myThread = new Thread(runnable);
 		myThread.setName("new thread");
 		myThread.start();
-		Log.e(LOG_TAG, "thread name ="+myThread.getName()+" id ="+myThread.getId());
+		if(DEBUG) Log.d(LOG_TAG, "thread name ="+myThread.getName()+" id ="+myThread.getId());
 	}
 
 	private void initialpara() {
@@ -53,11 +55,11 @@ public class psverinfo extends Activity {
     Runnable runnable = new Runnable(){
 		public void run() {
 			// TODO Auto-generated method stub
-			Log.e(LOG_TAG, "run is Runnable~~~");
+		    if(DEBUG) Log.d(LOG_TAG, "run is Runnable~~~");
 			Message msg = handler.obtainMessage();
 			msg.what = engconstents.ENG_AT_SPVER;
 			msg.obj = writeAndReadDateFromServer(msg.what);
-			Log.e(LOG_TAG, "msg.obj = <" + msg.obj+">");
+			if(DEBUG) Log.d(LOG_TAG, "msg.obj = <" + msg.obj+">");
 			handler.sendMessage(msg);
 		}
     };
@@ -65,9 +67,12 @@ public class psverinfo extends Activity {
     private String writeAndReadDateFromServer(int what) {
 			ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
 			DataOutputStream outputBufferStream = new DataOutputStream(outputBuffer);
-			Log.e(LOG_TAG, "engopen sockid=" + sockid);
-			str=String.format("%d,%d,%d", what,1,0);
-			try {
+			if(DEBUG) Log.d(LOG_TAG, "engopen sockid=" + sockid);
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+            //str=String.format("%d,%d,%d", what,1,0);
+            str = new StringBuilder().append(what).append(",").append(1).append(",").append(0).toString();
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
+            try {
 			    outputBufferStream.writeBytes(str);
 			} catch (IOException e) {
 			    Log.e(LOG_TAG, "writebytes error");
@@ -77,8 +82,8 @@ public class psverinfo extends Activity {
 			int dataSize = 128;
 			byte[] inputBytes = new byte[dataSize];
 			int showlen= mEf.engread(sockid,inputBytes,dataSize);
-			String str123 =  new String(inputBytes, 0, showlen);
-			Log.e(LOG_TAG, "str123" + str123);
+			String str123 =  new String(inputBytes, 0, showlen,Charset.defaultCharset());
+			if(DEBUG) Log.d(LOG_TAG, "str123" + str123);
 			return str123;
 	}
 }

@@ -142,7 +142,6 @@ typedef enum
 #if defined(USING_MALI200)
 #define MALIGP2_REG_VAL_IRQ_MASK_USED \
 	(\
-		MALIGP2_REG_VAL_IRQ_VS_END_CMD_LST      | \
 		MALIGP2_REG_VAL_IRQ_PLBU_END_CMD_LST    | \
 		MALIGP2_REG_VAL_IRQ_PLBU_OUT_OF_MEM     | \
 		MALIGP2_REG_VAL_IRQ_HANG                | \
@@ -153,7 +152,6 @@ typedef enum
 #elif defined(USING_MALI400) || defined(USING_MALI450)
 #define MALIGP2_REG_VAL_IRQ_MASK_USED \
 	(\
-		MALIGP2_REG_VAL_IRQ_VS_END_CMD_LST      | \
 		MALIGP2_REG_VAL_IRQ_PLBU_END_CMD_LST    | \
 		MALIGP2_REG_VAL_IRQ_PLBU_OUT_OF_MEM     | \
 		MALIGP2_REG_VAL_IRQ_HANG                | \

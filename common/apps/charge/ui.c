@@ -138,7 +138,7 @@ static void draw_progress_locked(int level)
 		level = 100;
 	else if (level < 0)
 		level = 0;
-	sprintf(bat, "%d%%%c", (level/5)*5, '\0');
+        sprintf(bat, "%d%%%c", level, '\0');
 	draw_text_xy((dy + height - 10), (gr_fb_width()/2 - 20), bat);
 
 	if (gProgressBarType == PROGRESSBAR_TYPE_NORMAL) {
@@ -397,7 +397,8 @@ rechk_pwr_key:
 			if(ret == -1){ /* time out */
 				LOGD(" %s: %d\n", __func__, __LINE__);
 				is_exit = 1;
-				reboot(RB_AUTOBOOT);
+				__reboot(LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2,
+						LINUX_REBOOT_CMD_RESTART2, "charger");
 				usleep(500000);
 				LOGD(" %s: %d, reboot failed\n", __func__, __LINE__);
 				break;
@@ -424,7 +425,8 @@ rechk_pwr_key:
 				}else{
 					LOGD(" %s: %d %s\n", __func__, __LINE__, "power key detect timeoutr, exit");
 					is_exit = 1;
-					reboot(RB_AUTOBOOT);
+					__reboot(LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2,
+						LINUX_REBOOT_CMD_RESTART2, "charger");
 					usleep(500000);
 					LOGD(" %s: %d, %s\n", __func__, __LINE__,"alarm reboot failed");
 					break;

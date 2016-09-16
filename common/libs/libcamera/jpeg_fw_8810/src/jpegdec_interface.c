@@ -152,6 +152,39 @@ PUBLIC JPEG_RET_E JPEG_HWDecInit(JPEG_DEC_INPUT_PARA_T *jpeg_dec_input)
 		JPEGFW_configure_vld_reg_jpegDec();
 
 		configure_huff_tab(g_huffTab, 162);		
+	}else
+	{
+	#if PROGRESSIVE_SUPPORT
+		JPEG_PROGRESSIVE_INFO_T *progressive_info_ptr;
+
+		progressive_info_ptr = (JPEG_PROGRESSIVE_INFO_T *)JpegDec_ExtraMemAlloc(sizeof(JPEG_PROGRESSIVE_INFO_T));
+		progressive_info_ptr->buf_storage = (JPEG_SOS_T*)JpegDec_ExtraMemAlloc(MAX_SCAN_NUM * sizeof(JPEG_SOS_T));
+
+		progressive_info_ptr->Ss = jpeg_fw_codec->Ss;
+		progressive_info_ptr->Se = jpeg_fw_codec->Se;
+		progressive_info_ptr->Ah = jpeg_fw_codec->Ah;
+		progressive_info_ptr->Al = jpeg_fw_codec->Al;
+		progressive_info_ptr->input_scan_number = jpeg_fw_codec->input_scan_number;
+		progressive_info_ptr->comp_info = jpeg_fw_codec->comp_info;
+		progressive_info_ptr->cur_scan = 0;
+		progressive_info_ptr->comps_in_scan		= jpeg_fw_codec->comps_in_scan;
+		SCI_MEMCPY(&(progressive_info_ptr->comp_id_map[0]), &(jpeg_fw_codec->comp_id_map[0]), 3*(sizeof(uint8)));
+		
+		JPEGFW_SetProgInfo(progressive_info_ptr);
+#if _CMODEL_
+		VSP_Init_CModel(); 
+#endif
+		JPEGFW_AllocMCUBuf();
+		JPEGFW_InitTransFun(progressive_info_ptr);
+		Initialize_Clip();
+		//Scan the bitstream and generate entry point map;
+		ret = JPEG_Generate_Entry_Point_Map_Progressive();
+
+		if(JPEG_SUCCESS != ret)
+		{
+			return ret;
+		}
+	#endif	
 	}
 	
 	/*check if quant_tbl is null*/
@@ -202,6 +235,11 @@ PUBLIC JPEG_RET_E JPEG_HWDecStart(uint32 num_of_rows, JPEG_DEC_OUTPUT_PARA_T *ou
 	if(!jpeg_fw_codec->progressive_mode)
 	{
 		ret = START_HW_DECODE(jpeg_fw_codec, num_of_rows);
+	}else
+	{
+	#if PROGRESSIVE_SUPPORT   
+		ret = START_SW_DECODE_PROGRESSIVE(jpeg_fw_codec, num_of_rows);
+	#endif
 	}
 	
 	output_para_ptr->output_width = (jpeg_fw_codec->c_width >> jpeg_fw_codec->scale_factor);

@@ -25,7 +25,8 @@
 #include <hardware/hardware.h>
 #include <hardware/gralloc.h>
 
-#include <linux/ion.h>
+//#include <linux/ion.h>
+#include "usr/include/linux/ion.h"
 #include "ion_sprd.h"
 
 #include "gralloc_priv.h"
@@ -490,7 +491,6 @@ private_module_t::private_module_t()
 	numBuffers = 0;
 	bufferMask = 0;
 	pthread_mutex_init(&(lock), NULL);
-	pthread_mutex_init(&(fd_lock), NULL);
 	currentBuffer = NULL;
 	INIT_ZERO(info);
 	INIT_ZERO(finfo);

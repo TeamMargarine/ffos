@@ -6,6 +6,16 @@
  * Created:	  2011-03-16
  * Description:  create pc client in android for engneer mode
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
  */
 
 #include <stdio.h>
@@ -2038,10 +2048,10 @@ static int eng_modem2server(int status, eng_fdtype_t *fdtype)
 		return ret;
 	}
 	if(fdtype->type==1) { //SIM2
-		ENG_AT_LOG("%s: use SIM2 %s\n",__func__,ENG_MODEM_DEV2);
+		ENG_AT_LOG("%s: use SIM2\n",__func__);
 		modemfd = modem_fd2;
 	} else {	//SIM1
-		ENG_AT_LOG("%s: use SIM1 %s\n",__func__,ENG_MODEM_DEV);
+		ENG_AT_LOG("%s: use SIM1\n",__func__);
 		modemfd = modem_fd1;
 	}
 	
@@ -2114,7 +2124,7 @@ static int eng_modem2server(int status, eng_fdtype_t *fdtype)
 				tmp= read(modemfd, ptr, ENG_BUF_LEN);
 				ENG_LOG("%s [ptr=%s] tmp=[%d]",__func__, ptr, tmp);
 				if(tmp < 0) {
-					usleep(1000);
+    				usleep(50*1000);
 					ENG_LOG("%s: ENG_AT_NOHANDLE_CMD continue",__func__);
 					continue;
 				} else {
@@ -2211,10 +2221,10 @@ static int eng_servermodem_comm(eng_fdtype_t *fdtype)
 
 		//write at command
 		if(fdtype->type==1) { //SIM2
-			ENG_AT_LOG("%s: use SIM2 %s\n",__func__,ENG_MODEM_DEV2);
+			ENG_AT_LOG("%s: use SIM2\n",__func__);
 			modemfd = modem_fd2;
 		} else {	//SIM1
-			ENG_AT_LOG("%s: use SIM1 %s\n",__func__,ENG_MODEM_DEV);
+			ENG_AT_LOG("%s: use SIM1\n",__func__);
 			modemfd = modem_fd1;
 		}
 		ENG_AT_LOG("AT > %s",cmd);
@@ -2287,10 +2297,12 @@ static int eng_modemclient_handshake( int fd)
 	return -1;
 }
 
-int eng_mcinit(void)
+int eng_mcinit(char *name)
 {
 	int ret, n=-1, counter=0;
 	char simtype[8];
+	char modem_dev[20];
+	char modem_dev2[20];
 	modem_fd1 = -1;
 	modem_fd2 = -1;
 
@@ -2299,37 +2311,44 @@ int eng_mcinit(void)
 	n = atoi(simtype);
 	ALOGD("%s: %s is %s, n=%d\n",__func__, ENG_SIMTYPE, simtype,n);
 
+	if (strcmp(name,"engw") == 0){
+		sprintf(modem_dev,"%s",ENG_MODEM_DEVW);
+		sprintf(modem_dev2,"%s",ENG_MODEM_DEVW2);
+	} else {
+		sprintf(modem_dev,"%s",ENG_MODEM_DEVT);
+		sprintf(modem_dev2,"%s",ENG_MODEM_DEVT2);
+	}
 
 	//open modem-client device file
-	while((modem_fd1=open(ENG_MODEM_DEV, O_RDWR|O_NONBLOCK)) < 0){
+	while((modem_fd1=open(modem_dev, O_RDWR|O_NONBLOCK)) < 0){
 		ENG_LOG("%s: open %s failed!, error[%d][%s]\n",\
-			__func__,  ENG_MODEM_DEV, errno, strerror(errno));
+			__func__,modem_dev, errno, strerror(errno));
 		usleep(500*1000);
 	}
 
-	ALOGD("%s: open %s OK",__func__, ENG_MODEM_DEV);
+	ALOGD("%s: open %s OK",__func__, modem_dev);
 
 	if(n==2) {
-		while((modem_fd2=open(ENG_MODEM_DEV2, O_RDWR|O_NONBLOCK)) < 0){
+		while((modem_fd2=open(modem_dev2, O_RDWR|O_NONBLOCK)) < 0){
 			ENG_LOG("%s: open %s failed!, error[%d][%s]\n",\
-				__func__,  ENG_MODEM_DEV2, errno, strerror(errno));
+				__func__,modem_dev2, errno, strerror(errno));
 			usleep(500*1000);
 		}
 
-		ALOGD("%s: open %s OK",__func__, ENG_MODEM_DEV2);
+		ALOGD("%s: open %s OK",__func__, modem_dev2);
 	}
 
 	eng_init_array();
 	//connect to server
-	while((soc_fd = eng_client(ENG_SOCKET_PORT, SOCK_STREAM))<0) {
+	while((soc_fd = eng_client(name, SOCK_STREAM))<0) {
 		ALOGD("%s: eng_client failed!, error[%d][%s]\n",\
 			__func__, errno, strerror(errno));
 		usleep(1000);
 	}
 
 	ENG_LOG("%s: soc_fd=%d",__func__, soc_fd);
-	if (soc_fd <= 0) {
-	    ENG_LOG ("%s: opening engmode server socket failed\n", __FILE__);
+	if (soc_fd < 0) {
+	    ENG_LOG("%s: opening  %s server_socket failed\n", __func__,name);
 	    close(modem_fd1);
 		close(modem_fd2);
 	    return -1;
@@ -2385,20 +2404,20 @@ static int eng_monitor_handshake( int fd)
 	return -1;
 }
 
-int eng_monitor_open(void)
+int eng_monitor_open(char *name)
 {
 	int counter=0;
 	int soc_fd;
 	int err=0;
 	
 	//connect to server
-	soc_fd = eng_client(ENG_SOCKET_PORT, SOCK_STREAM);
+	soc_fd = eng_client(name, SOCK_STREAM);
 
-	while(soc_fd <= 0) {
-	    ENG_LOG ("%s: opening engmode server socket failed\n", __FUNCTION__);
+	while(soc_fd < 0) {
+		ENG_LOG ("%s: open %s server socket failed\n", __FUNCTION__,name);
 		ENG_LOG("%s: soc_fd=%d",__func__, soc_fd);
 		usleep(50*1000);
-	    soc_fd = eng_client(ENG_SOCKET_PORT, SOCK_STREAM);
+	    soc_fd = eng_client(name, SOCK_STREAM);
 	}
 	ENG_LOG("%s: soc_fd=%d",__func__, soc_fd);
 
@@ -2421,7 +2440,7 @@ void *eng_monitor_func(void *x)
 	fd_set readfds;
 	unsigned char mbuf[ENG_BUF_LEN] = {0};
 
-	fd = eng_monitor_open();
+	fd = eng_monitor_open((char*)x);
 	FD_ZERO(&readfds);
 	FD_SET(fd, &readfds);
 	sem_post(&thread_sem_lock);
@@ -2445,24 +2464,23 @@ void *eng_monitor_func(void *x)
 	
 }
 
-static int eng_monitor_thread(void)
+static int eng_monitor_thread(char *name)
 {
 	pthread_attr_t attr;
 	int ret;
 	
 	pthread_attr_init (&attr);
-	ret = pthread_create(&tid_dispatch, &attr, eng_monitor_func, NULL);
+	ret = pthread_create(&tid_dispatch, &attr, eng_monitor_func, name);
 	return ret;
 
 }
 
-
-int main(int argc, char *argv[])
+int main (int argc, char** argv)
 {
-	pid_t pid;
-	
-	ENG_LOG("Run Engineer Mode MODEM2SERVER Client!\n");
-	
+	char name[10];
+	int opt;
+	int type;
+#if 0
 	umask(0);
 
 	/*
@@ -2477,14 +2495,33 @@ int main(int argc, char *argv[])
 	if (chdir("/") < 0){
 		ENG_LOG("%s: engclient can't change directory to /", __FILE__);	
 	}
+#endif
+	ENG_LOG("eng_modemclient");
+
+	while ( -1 != (opt = getopt(argc, argv, "t:"))) {
+		switch (opt) {
+			case 't':
+				memset(name,0,10);
+				type = atoi(optarg);
+				if (type){
+					strcpy(name,"engtd");
+				} else {
+					strcpy(name,"engw");
+				}
+				break;
+			default:
+				exit(EXIT_FAILURE);
+		}
+	}
+	ENG_LOG("%s name=%s",__func__,name);
 
 	sem_init(&thread_sem_lock, 0, 0);
 
-	eng_monitor_thread();
+	eng_monitor_thread(name);
 
 	sem_wait(&thread_sem_lock);
 
-	eng_mcinit();
+	eng_mcinit(name);
 
 	return 0;
 	

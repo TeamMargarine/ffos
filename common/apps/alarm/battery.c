@@ -25,7 +25,7 @@ extern int g_alarm_button_event;
 int check_input_dev(const char * cmstr)
 {
 	FILE *fp;
-	char cmdline[512];
+	char cmdline[1024];
 	char *tmpstr;
 
 	fp=fopen("/proc/bus/input/devices","r");

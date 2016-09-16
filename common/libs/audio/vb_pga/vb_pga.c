@@ -143,6 +143,7 @@ int SetAudio_pga_parameter_eng(AUDIO_TOTAL_T *aud_params_ptr, unsigned int param
     if (!pga) {
         mixer_close(mixer);
         ALOGE("%s Warning: Unable to locate PGA from XML.",__func__);
+        return -1;
     }
     ret = SetAudio_gain_4eng(pga,&pga_gain_nv,aud_params_ptr);
     if(ret < 0){

@@ -1,24 +1,26 @@
 package com.spreadtrum.android.eng;
 
-import android.app.Activity;
-import android.text.method.NumberKeyListener;
-import android.util.Log;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.Toast;
-import android.os.Bundle;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
-
-import android.view.Gravity;
-import android.view.View;
+import android.app.Activity;
+import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.text.method.NumberKeyListener;
+import android.util.Log;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 public class sendgprsdata extends Activity {
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String LOG_TAG = "sendgprsdata";
 	private int sockid = 0;
 	private engfetch mEf;
@@ -103,11 +105,17 @@ public class sendgprsdata extends Activity {
 
 				if(!getEditTextValue()) return;
 
-				Log.e(LOG_TAG, "engopen sockid=" + sockid);
+				if(DEBUG) Log.d(LOG_TAG, "engopen sockid=" + sockid);
 				if(bHasContent){
-				str=String.format("%d,%d,%d,%d,%s", msg.what,3,100,1,strInput);
+    /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+                //str=String.format("%d,%d,%d,%d,%s", msg.what,3,100,1,strInput);
+                str=new StringBuilder().append(msg.what).append(",").append(3).append(",")
+                    .append(100).append(",").append(1).append(",").append(strInput).toString();
 				}else{
-				str=String.format("%d,%d,%d", msg.what,1,mInt01);
+                //str=String.format("%d,%d,%d", msg.what,1,mInt01);
+                str=new StringBuilder().append(msg.what).append(",").append(1).append(",")
+                    .append(mInt01).toString();
+    /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 				}
 				try {
 				outputBufferStream.writeBytes(str);
@@ -120,7 +128,7 @@ public class sendgprsdata extends Activity {
 				int dataSize = 128;
 				byte[] inputBytes = new byte[dataSize];
 				int showlen= mEf.engread(sockid,inputBytes,dataSize);
-				String str =new String(inputBytes,0,showlen); 
+				String str =new String(inputBytes,0,showlen,Charset.defaultCharset());
 
 				if(str.equals("OK")){
 					Toast.makeText(getApplicationContext(), "Send Success.",Toast.LENGTH_SHORT).show(); 

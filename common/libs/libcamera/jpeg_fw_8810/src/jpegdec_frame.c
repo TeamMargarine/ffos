@@ -516,6 +516,251 @@ PUBLIC JPEG_RET_E JpegDec_GetBsBitOffset(uint32 bitstrm_bfr_switch_cnt)
 	return JPEG_SUCCESS;
 }
 
+#if PROGRESSIVE_SUPPORT
+long jpeg_div_round_up(long a, long b)
+{
+	/* Compute a/b rounded up to next integer, ie, ceil(a/b) */
+	/* Assumes a >= 0, b > 0 */
+	return (a + b -1L)/b;
+}
+
+
+
+void JpedDec_Update_SOS(uint8 scan_index)
+{
+	int32 ci;
+	JPEG_CODEC_T *jpeg_fw_codec = Get_JPEGDecCodec();
+	JPEG_PROGRESSIVE_INFO_T *progressive_info = JPEGFW_GetProgInfo();
+
+	progressive_info->cur_scan = scan_index;
+
+	//Update the cinfo.Ss etc...
+	progressive_info->Ss = progressive_info->buf_storage[scan_index].Ss;
+	progressive_info->Se = progressive_info->buf_storage[scan_index].Se;
+	progressive_info->Ah = progressive_info->buf_storage[scan_index].Ah;
+	progressive_info->Al = progressive_info->buf_storage[scan_index].Al;
+	progressive_info->comps_in_scan = progressive_info->buf_storage[scan_index].comps_in_scan;
+
+	for(ci = 0; ci < progressive_info->comps_in_scan; ci++)
+	{
+		progressive_info->cur_comp_info[ci] = &(progressive_info->buf_storage[scan_index].cur_comp_info[ci]);
+	}
+
+	if(progressive_info->comps_in_scan == 1)
+	{
+		progressive_info->MCU_per_col = progressive_info->cur_comp_info[0]->v_samp_factor;
+		progressive_info->MCU_per_row = (uint16)jpeg_div_round_up(jpeg_fw_codec->width*progressive_info->cur_comp_info[0]->h_samp_factor, jpeg_fw_codec->ratio[0].h_ratio*JPEG_FW_BLOCK_SIZE);
+		
+	}else
+	{
+		progressive_info->MCU_per_col = 1;
+		progressive_info->MCU_per_row = jpeg_fw_codec->mcu_num_x;
+	}
+
+	/*update the bitstream info*/
+	Update_Global_Bitstrm_Info(&(progressive_info->buf_storage[scan_index].address));
+}
+
+
+
+JPEG_RET_E JPEG_DecodeMCULine_Progressive()
+{
+	uint8 i = 0;
+	uint8 yoffset, xoffset;
+	int16 *block;
+	int16 **org_mcu = NULL;
+	uint16 block_id;
+	uint32 ci;
+	int16 start_col_block, blocksperrow;
+	int16 yindex, xindex;
+	jpeg_component_info *compptr = NULL;
+	JPEG_CODEC_T *jpeg_fw_codec = Get_JPEGDecCodec();
+	JPEG_PROGRESSIVE_INFO_T *progressive_info = JPEGFW_GetProgInfo();
+
+	memset(progressive_info->block_line[0], 0, 64*sizeof(int16)*jpeg_fw_codec->mcu_num_x*jpeg_fw_codec->ratio[0].h_ratio*jpeg_fw_codec->ratio[0].v_ratio);
+	memset(progressive_info->block_line[1], 0, 64*sizeof(int16)*jpeg_fw_codec->mcu_num_x);
+	memset(progressive_info->block_line[2], 0, 64*sizeof(int16)*jpeg_fw_codec->mcu_num_x);
+
+	while(i < progressive_info->input_scan_number)
+	{
+		//update the environment of progressive decoding
+		JpedDec_Update_SOS(i);
+
+		for(yoffset = 0; yoffset < progressive_info->MCU_per_col; yoffset++)
+		{
+			for(xoffset = 0; xoffset < progressive_info->MCU_per_row; xoffset++)
+			{
+				if(xoffset == 1)
+				{
+					JPEG_TRACE("");
+				}
+				block_id = 0;
+				for(ci = 0; ci < progressive_info->comps_in_scan; ci++)
+				{
+					compptr = progressive_info->cur_comp_info[ci]; 
+					start_col_block = xoffset * compptr->MCU_width;
+					blocksperrow = jpeg_fw_codec->mcu_num_x*compptr->h_samp_factor * JPEG_FW_DCTSIZE2;
+					
+					for(yindex = 0; yindex < compptr->MCU_height; yindex++)
+					{
+						block = progressive_info->block_line[compptr->component_id -1] + (yindex+yoffset)*blocksperrow+
+							start_col_block*JPEG_FW_DCTSIZE2;
+						for(xindex = 0; xindex < compptr->MCU_width; xindex++)
+						{
+							progressive_info->blocks[block_id++] = block;
+							block += JPEG_FW_DCTSIZE2;
+
+						}
+					}
+				}
+
+				org_mcu = progressive_info->blocks;
+
+				if((*progressive_info->buf_storage[i].entropy.decode_mcu)(org_mcu) != TRUE)
+				{
+					return JPEG_FAILED;
+				}
+			}
+		}
+
+		//update the bitstream info;
+		Update_Local_Bitstrm_Info(&(progressive_info->buf_storage[i].address));
+
+		i++;
+	}
+
+
+	return JPEG_SUCCESS;
+}
+
+PUBLIC JPEG_RET_E START_SW_DECODE_PROGRESSIVE(JPEG_CODEC_T *jpeg_fw_codec, uint32 num_of_rows)
+{
+	uint16 x = 0, y = 0;
+	uint8 input_mcu_info = jpeg_fw_codec->input_mcu_info;
+	uint8 scale_factor = jpeg_fw_codec->scale_factor;
+	uint32 mcu_num_y = (num_of_rows / (jpeg_fw_codec->mcu_height));
+	uint32 mcu_num_x = jpeg_fw_codec->mcu_num_x;
+	int32 block_id;
+	int32 luma_blk_num;
+	int32 chroma_blk_num;
+	int16 *block;
+	uint8 *rgiDst;
+	uint32 ci;
+
+	const int32 *quant;
+	uint8 *y_coeff = jpeg_fw_codec->dbk_bfr0_valid ? jpeg_fw_codec->YUV_Info_0.y_data_ptr : jpeg_fw_codec->YUV_Info_1.y_data_ptr;
+	uint8 *uv_coeff = jpeg_fw_codec->dbk_bfr0_valid ? jpeg_fw_codec->YUV_Info_0.u_data_ptr : jpeg_fw_codec->YUV_Info_1.u_data_ptr;
+	JPEG_PROGRESSIVE_INFO_T *progressive_info = JPEGFW_GetProgInfo();
+	JPEGFW_MCU_To_Frame MCUToFrm;
+	
+	int32 luma_h_ratio = jpeg_fw_codec->ratio[0].h_ratio;
+	int32 luma_v_ratio = jpeg_fw_codec->ratio[0].v_ratio;
+	int32 offset;
+
+	if(jpeg_fw_codec->is_first_slice)
+	{
+	//	Init_downsample_fun();
+	}
+	
+	switch(input_mcu_info) 
+	{
+	case JPEG_FW_YUV444:
+		MCUToFrm = JPEGFW_OutMCU444;
+		progressive_info->block_num = 3;
+		luma_blk_num = 1;
+		chroma_blk_num = 2;
+		break;
+	case JPEG_FW_YUV422:
+		MCUToFrm = JPEGFW_OutMCU422;
+		progressive_info->block_num = 4;
+		luma_blk_num = 2;
+		chroma_blk_num = 2;
+		break;
+	case JPEG_FW_YUV411:		
+		MCUToFrm = JPEGFW_OutMCU411;
+		progressive_info->block_num = 6;
+		luma_blk_num = 4;
+		chroma_blk_num = 2;
+		break;
+	case JPEG_FW_YUV420:		
+		MCUToFrm = JPEGFW_OutMCU420;
+		progressive_info->block_num = 6;
+		luma_blk_num = 4;
+		chroma_blk_num = 2;
+		break;	
+	case JPEG_FW_YUV400:		
+		MCUToFrm = JPEGFW_OutMCU400;
+		progressive_info->block_num = 1;
+		luma_blk_num = 1;
+		chroma_blk_num = 0;
+		break;
+//	case JPEG_FW_YUV422_R:
+//		MCUToFrm = JPEGFW_OutMCU444;
+//		progressive_info->block_num = 4;
+//		break;
+//	case JPEG_FW_YUV411_R:
+//		MCUToFrm = JPEGFW_OutMCU444;
+//		progressive_info->block_num = 6;
+//		break;
+	default:
+		return JPEG_FAILED;
+	}
+
+	JPEG_TRACE("\nJPEG Decoding MCU...\n");
+	for(y = 0; y < mcu_num_y; y++)
+	{
+		if(y == 20 )
+		{
+			JPEG_TRACE("");
+		}
+
+		JPEG_TRACE("MCU_Num_Y:%d\n", y);
+
+		JPEG_DecodeMCULine_Progressive();
+
+		for(x = 0; x < mcu_num_x; x++)
+		{
+			if(y == 0x9 && x == 0)
+			{
+				JPEG_TRACE("");
+			}
+
+			//make vld to fill the io_buf
+			for(block_id = 0; block_id < progressive_info->block_num; block_id++)
+			{
+				if(block_id < luma_blk_num)
+				{
+					offset = ((block_id/luma_h_ratio)*jpeg_fw_codec->mcu_num_x+x)*luma_h_ratio+(block_id%luma_v_ratio);
+					block = progressive_info->block_line[0]+offset*JPEG_FW_DCTSIZE2;
+				}else
+				{
+					block = progressive_info->block_line[block_id - luma_blk_num+1]+x*JPEG_FW_DCTSIZE2;
+				}
+				
+				rgiDst = progressive_info->org_blocks[block_id];
+				
+				ci = progressive_info->blocks_membership[block_id];
+				quant = progressive_info->quant_tbl_new[jpeg_fw_codec->tbl_map[ci].quant_tbl_id];
+
+				//dequant has been performed in idct transformation
+	 			(*progressive_info->jpeg_transform)(block, rgiDst, quant);
+			}
+
+			//copy MCU data to coeff buffer,Added by wangyi 2007/05/02
+			 MCUToFrm((uint8*)y_coeff, (uint8*)uv_coeff, x, y, scale_factor);
+		}
+	}
+
+// jpeg_end:	
+	JPEG_TRACE("JPEG Decoding Finished...\n\n");
+
+#if _CMODEL_
+	MBIO_INT_PROC();
+#endif
+	
+	return JPEG_SUCCESS;
+}
+#endif
 //////////////////////////////////////////////////////////////////////////
 //#endif //JPEG_DEC
 /**---------------------------------------------------------------------------*

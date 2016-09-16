@@ -3,17 +3,51 @@
 
 #define __ENG_DIAG_H__
 
+/*got it from tool*/
+#define DIAG_CHANGE_MODE_F  12
+typedef enum
+{
+	NORMAL_MODE                         = 0,
+	LAYER1_TEST_MODE                    = 1,
+	ASSERT_BACK_MODE                    = 2,
+	CALIBRATION_MODE                    = 3,
+	DSP_CODE_DOWNLOAD_BACK              = 4,
+	DSP_CODE_DOWNLOAD_BACK_CALIBRATION  = 5,
+	BOOT_RESET_MODE                     = 6,
+	PRODUCTION_MODE                     = 7,
+	RESET_MODE                          = 8,
+	CALIBRATION_POST_MODE               = 9,
+	PIN_TEST_MODE                       = 10,
+	IQC_TEST_MODE                       = 11,
+	WATCHDOG_RESET_MODE                 = 12,
+
+	CALIBRATION_NV_ACCESS_MODE          = 13,
+	CALIBRATION_POST_NO_LCM_MODE        = 14,
+
+	TD_CALIBRATION_POST_MODE            = 15,
+	TD_CALIBRATION_MODE                 = 16,
+	TD_CALIBRATION_POST_NO_LCM_MODE     = 17,
+
+	MODE_MAX_TYPE,
+
+	MODE_MAX_MASK                       = 0x7F
+
+}MCU_MODE_E;
+
 #define MAX_IMEI_LENGTH		8
 #define MAX_BTADDR_LENGTH	6
 #define MAX_WIFIADDR_LENGTH	6
 #define GPS_NVINFO_LENGTH	44
 #define DIAG_HEADER_LENGTH	8
 
-#define DIAG_CMD_VER			0x00
-#define DIAG_CMD_IMEIBTWIFI		0x5E
-#define DIAG_CMD_READ			0x80
+#define DIAG_CMD_VER		0x00
+#define DIAG_CMD_IMEIBTWIFI	0x5E
+#define DIAG_CMD_READ		0x80
+#define DIAG_CMD_GETVOLTAGE	0x1E
+#define DIAG_CMD_APCALI		0x62
 #define DIAG_CMD_FACTORYMODE	0x0D
-#define DIAG_CMD_AUDIO		    0x68
+#define DIAG_CMD_AUDIO		0x68
+#define DIAG_CMD_CHANGEMODE     DIAG_CHANGE_MODE_F
 
 
 
@@ -36,6 +70,9 @@ typedef enum
 	CMD_USER_BTWIFI,
 	CMD_USER_FACTORYMODE,
 	CMD_USER_AUDIO,
+	CMD_USER_RESET,
+	CMD_USER_GETVOLTAGE,
+	CMD_USER_APCALI,
 	CMD_INVALID
 }DIAG_CMD_TYPE;
 
@@ -44,7 +81,6 @@ typedef enum
 #define ENG_ANDROID_VER "ro.build.version.release"
 #define ENG_AUDIO       "/sys/class/vbc_param_config/vbc_param_store"
 #define ENG_FM_DEVSTAT	"/sys/class/fm_devstat_config/fm_devstat_store"
-
 
 
 
@@ -84,5 +120,5 @@ int eng_diag_writeimei(char *req, char *rsp);
 void *eng_vlog_thread(void *x);
 void *eng_vdiag_thread(void *x);
 void * eng_sd_log(void * args);
-
+void *eng_vlog_fifo_thread(void *x);
 #endif

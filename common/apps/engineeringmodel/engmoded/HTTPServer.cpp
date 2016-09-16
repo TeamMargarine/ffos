@@ -16,16 +16,12 @@
 #include<fcntl.h>
 #include<arpa/inet.h>
 #include<sys/socket.h>
-#include <signal.h>   
-#include <unistd.h>   
-#include <sys/wait.h>
 
 #include"HTTPServer.h"
 
 #include "ATProcesser.h"
 
 //extern int errno;
-#define FORK_PROCESS 1
 
 using namespace std;
 
@@ -82,7 +78,7 @@ int HTTPServer::initSocket()
 	}
 
 	/* Set to listen on control socket */
-	if(listen(sockfd, 30000)){
+	if(listen(sockfd, 5)){
 		cerr<<funcName<<"Listen on port "<<svrPort<<" failed"<<endl;
 		return -1;
 	}
@@ -90,18 +86,10 @@ int HTTPServer::initSocket()
 	return 0;
 }
 
-void handler(int num) {   
-    int status;   
-    int pid = waitpid(-1, &status, WNOHANG);   
-    if (WIFEXITED(status)) {   
-        printf("The child %d exit with code %d\n", pid, WEXITSTATUS(status));   
-    }   
-} 
-
 int HTTPServer::run()
 {
 	string funcName = "run: ";
-	signal(SIGCHLD, handler);
+
 	if(initSocket()){
 		cerr<<funcName<<"Failed to initialize socket"<<endl;
 		return -1;
@@ -112,29 +100,23 @@ int HTTPServer::run()
 
 		if((newsockfd = accept(sockfd, (struct sockaddr *)&cliAddr, &cliLen))<0){
 			cerr<<funcName<<"Accept call failed"<<endl;
-			LOG("engmoded: error: Accept call failed");
 			return -1;
 		}
 #ifdef FORK_PROCESS
 		if(fork() == 0){
 			if(handleRequest()){
 				cerr<<funcName<<"Failed handling request"<<endl;
-				LOG("engmoded: error: Failed handling request");
 				exit(-1);
 			}
 
 			exit(0);
-			close(newsockfd);
-		}else{
-			close(newsockfd);
 		}
 #else
         if(handleRequest()){
             cerr<<funcName<<"Failed handling request"<<endl;
-		LOG("engmoded: error: Failed handling request");
         }
 #endif
-		//close(newsockfd);
+		close(newsockfd);
 	}
 
 	return 0;
@@ -149,7 +131,6 @@ int HTTPServer::handleRequest()
 	 
 	if(recvRequest()){
 		cerr<<funcName<<"Receiving request failed"<<endl;
-		LOG("engmoded: error: Receiving request failed");
 		return -1;
 	}
 
@@ -157,13 +138,11 @@ int HTTPServer::handleRequest()
 
 	if(parseRequest()){
 		cerr<<funcName<<"Parsing HTTP Request failed"<<endl;
-		LOG("engmoded: error: Parsing HTTP Request failed");
 		return -1;
 	}
 
 	if(processRequest()){
 		cerr<<funcName<<"Processing HTTP Request failed"<<endl;
-		LOG("engmoded: Processing HTTP Request failed");
 		return -1;
 	}
 
@@ -176,7 +155,6 @@ int HTTPServer::handleRequest()
 
 	if(sendResponse()){
 		cerr<<funcName<<"Sending reply failed"<<endl;
-		LOG("engmoded: error: Sending reply failed");
 		return -1;
 	}
 	
@@ -348,10 +326,8 @@ int HTTPServer::processEngRequest()
     m_mimeType = getMimeType(url);
     string cmd = HTTPRequest::URL::getParameter(url, "cmd");
     cout << "engrequest url " << url << ", param="<<cmd<< endl;
-    LOG("engmoded: info engrequest(url=%s)", url.c_str());    
-
+    
     content=ATProcesser(url).response();
-    LOG("engmoded: info: response:content=%s",content.c_str());
     os<<content.length();
     m_httpResponse->setResponseBody(&content);
     m_httpResponse->setHTTPHeader("Content-Length", os.str());
@@ -501,9 +477,4 @@ string HTTPServer::getMimeType(string fileName)
 	}
 
 	return mimeType;
-}
-
-void HTTPLog(char *format, ...)
-{
-	
 }

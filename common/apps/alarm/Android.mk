@@ -3,7 +3,6 @@ ifeq ($(strip $(SPRDROID4.0_DEV)),true)
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-
 define _add-w-alarm-image
 include $$(CLEAR_VARS)
 LOCAL_MODULE := alarm_w_$(notdir $(1))
@@ -12,7 +11,7 @@ _img_modules += $$(LOCAL_MODULE)
 LOCAL_SRC_FILES := $1
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := ETC
-LOCAL_MODULE_PATH := $$(TARGET_OUT)/res/images/wvga
+LOCAL_MODULE_PATH := $$(TARGET_ROOT_OUT)/res/images/wvga
 include $$(BUILD_PREBUILT)
 endef
 
@@ -24,7 +23,7 @@ _img_modules += $$(LOCAL_MODULE)
 LOCAL_SRC_FILES := $1
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := ETC
-LOCAL_MODULE_PATH := $$(TARGET_OUT)/res/images/hvga
+LOCAL_MODULE_PATH := $$(TARGET_ROOT_OUT)/res/images/hvga
 include $$(BUILD_PREBUILT)
 endef
 
@@ -45,7 +44,7 @@ _img_modules += default_ring.mp3
 LOCAL_SRC_FILES := res/sounds/default_ring.mp3
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := ETC
-LOCAL_MODULE_PATH := $(TARGET_OUT)/res/sounds/
+LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT)/res/sounds/
 include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
@@ -77,8 +76,8 @@ LOCAL_C_INCLUDES += \
 LOCAL_MODULE:= poweroff_alarm
 
 LOCAL_FORCE_STATIC_EXECUTABLE := true
-LOCAL_MODULE_PATH := $(TARGET_OUT_EXECUTABLES)
-LOCAL_UNSTRIPPED_PATH := $(TARGET_OUT_EXECUTABLES_UNSTRIPPED)
+LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT_BIN)
+LOCAL_UNSTRIPPED_PATH := $(TARGET_ROOT_OUT_BIN_UNSTRIPPED)
 
 LOCAL_STATIC_LIBRARIES := libcutils libc
 

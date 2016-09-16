@@ -1,19 +1,15 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2012 Spreadtrum Communications Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
-
 #include <utils/Log.h>
 #include "sensor.h"
 #include "jpeg_exif_header.h"
@@ -630,8 +626,11 @@ LOCAL const SENSOR_REG_T ov5640_1280x960_setting[] = {
      {0x460c,0x22},
      {0x3824,0x02},	
      {0x460b,0x37},
-	 
+#ifdef CONFIG_ARCH_SC8825
      {0x3503,0x03}	// AEC/AGC off
+#else
+     {0x3503,0x00}	// AEC/AGC on
+#endif
 };
 LOCAL const SENSOR_REG_T ov5640_1280x960_jpeg_setting[] = {
      /*@@YUV_1280*960_15fps*/
@@ -752,8 +751,11 @@ LOCAL const SENSOR_REG_T ov5640_1600x1200_setting[] = {
      {0x460c,0x22},
      {0x3824,0x02},	
      {0x460b,0x37},
-	 
+#ifdef CONFIG_ARCH_SC8825
      {0x3503,0x03}	// AEC/AGC off
+#else
+     {0x3503,0x00}	// AEC/AGC on
+#endif
 };
 
 LOCAL const SENSOR_REG_T ov5640_1600x1200_jpeg_setting[] = {
@@ -813,7 +815,7 @@ LOCAL const SENSOR_REG_T ov5640_1600x1200_jpeg_setting[] = {
      {0x501f,0x00},
      {0x4713,0x02},
      {0x460b,0x35},
-     
+
      {0x3503,0x03}	// AEC/AGC off
 };
 
@@ -886,7 +888,12 @@ LOCAL const SENSOR_REG_T ov5640_2048x1536_setting[] = {
      //{0x3824,0x02},	
      {0x460b,0x37},
 */     
+
+#ifdef CONFIG_ARCH_SC8825
      {0x3503,0x03}	// AEC/AGC off
+#else
+     {0x3503,0x00}	// AEC/AGC on
+#endif
 };
 
 LOCAL const SENSOR_REG_T ov5640_2048x1536_jpeg_setting[] = {
@@ -1022,7 +1029,11 @@ LOCAL const SENSOR_REG_T ov5640_2592x1944_setting[] = {
      {0x3824,0x02},	
      {0x460b,0x37},
   
+#ifdef CONFIG_ARCH_SC8825
      {0x3503,0x03}	// AEC/AGC off
+#else
+     {0x3503,0x00}	// AEC/AGC on
+#endif
 };
 
 LOCAL const SENSOR_REG_T ov5640_2592x1944_jpeg_setting[] = {
@@ -1163,12 +1174,17 @@ LOCAL SENSOR_IOCTL_FUNC_TAB_T s_ov5640_ioctl_func_tab = {
 	_ov5640_GetExifInfo,
 	_ov5640_ExtFunc,
 	_ov5640_set_anti_flicker,
-	PNULL, //_ov5640_set_video_mode,
+	_ov5640_set_video_mode,
 	_ov5640_pick_out_jpeg_stream,
 	PNULL, //meter_mode
 	PNULL, //get_status
 	_ov5640_StreamOn,
+#ifdef CONFIG_CAMERA_SENSOR_NEW_FEATURE
+	_ov5640_StreamOff,
+	PNULL
+#else
 	_ov5640_StreamOff
+#endif
 };
 
 
@@ -1383,7 +1399,7 @@ LOCAL uint32_t _ov5640_Identify(uint32_t param)
 			     pid_value, ver_value);
 		if (ov5640_VER_VALUE == ver_value) {
 			ret_value = SENSOR_SUCCESS;
-			SENSOR_PRINT("this is ov5640 sensor !");
+			SENSOR_PRINT("this is ov5640 yuv mipi sensor !");
 		} else {
 			SENSOR_PRINT("this is OV%x%x sensor !", pid_value, ver_value);
 		}
@@ -1751,12 +1767,12 @@ LOCAL const SENSOR_REG_T ov5640_video_mode_tab[][3]=
 {
 	/* preview mode: 30 fps*/
 	{
-		{0x3036, 0x46},
+		{0x3036, 0x38},
 		{0xffff, 0xff}
 	},
 	/* video mode: if use 35 fps, change it to 0x50*/
 	{
-		{0x3036, 0x50},/* 0x50: 35fps, 0x46: 30 fps*/
+		{0x3036, 0x3A},/* 0x3A: 31fps, 0x38: 30 fps*/
 		{0xffff, 0xff}
 	}
 };
@@ -2105,7 +2121,13 @@ int OV5640_get_sysclk(void)
 	temp2 = temp1 & 0x03;
 	sclk_rdiv = sclk_rdiv_map[temp2];
 
+	SENSOR_PRINT("temp1 = 0x%x, temp2 = 0x%x, sclk_rdiv = 0x%x, Multiplier = 0x%x, PreDiv = 0x%x \n",
+		temp1, temp2, sclk_rdiv, Multiplier, PreDiv);
+
 	VCO = 2400 * Multiplier / PreDiv;//if MCLK = 24M, then XVCLK = 2400
+
+	SENSOR_PRINT("VCO = 0x%x, SysDiv = 0x%x, Pll_rdiv = 0x%x, Bit_div2x = 0x%x, sclk_rdiv = 0x%x \n",
+		VCO, SysDiv, Pll_rdiv, Bit_div2x, sclk_rdiv);
 
 	sysclk = VCO / SysDiv / Pll_rdiv * 2 / Bit_div2x / sclk_rdiv;
 
@@ -2409,11 +2431,18 @@ int OV5640_capture(uint32_t param)
 
 LOCAL uint32_t _ov5640_BeforeSnapshot(uint32_t param)
 {
+	uint32_t cap_mode = (param>>CAP_MODE_BITS);
 
-
-
-	SENSOR_PRINT("%d.",param);
+	param = param&0xffff;
+	SENSOR_PRINT("%d,%d.",cap_mode,param);
 	if (SENSOR_MODE_PREVIEW_ONE >= param) {
+		int ae_ag_ctrl;
+		//turn off AE/AG
+		ae_ag_ctrl = Sensor_ReadReg(0x3503);
+		SENSOR_PRINT("before, ae_ag_ctrl 0x%x", ae_ag_ctrl);
+		ae_ag_ctrl = ae_ag_ctrl | 0x03;
+		Sensor_WriteReg(0x3503, ae_ag_ctrl);
+		SENSOR_PRINT("after, ae_ag_ctrl 0x%x", ae_ag_ctrl);
 		s_capture_shutter = OV5640_get_shutter();
 		s_capture_VTS = OV5640_get_VTS();
 		_ov5640_ReadGain(param);
@@ -2485,7 +2514,15 @@ LOCAL uint32_t _ov5640_pick_out_jpeg_stream(uint32_t param)
 
 LOCAL uint32_t _ov5640_after_snapshot(uint32_t param)
 {
+	int ae_ag_ctrl;
 	Sensor_SetMode(param);
+	/*AEC/AGC on*/
+	ae_ag_ctrl = Sensor_ReadReg(0x3503);
+	SENSOR_PRINT("before, ae_ag_ctrl 0x%x", ae_ag_ctrl);
+	ae_ag_ctrl = ae_ag_ctrl & 0xFC;
+	SENSOR_PRINT("after, ae_ag_ctrl 0x%x", ae_ag_ctrl);
+	Sensor_WriteReg(0x3503, ae_ag_ctrl);
+
 	return SENSOR_SUCCESS;
 }
 
@@ -7224,3 +7261,4 @@ LOCAL uint32_t _ov5640_flash(uint32_t param)
 	SENSOR_PRINT(" value = %d, autoflash = 0x%x, auto_flash_mode",  value, autoflash);
 	return SENSOR_SUCCESS;
 }
+

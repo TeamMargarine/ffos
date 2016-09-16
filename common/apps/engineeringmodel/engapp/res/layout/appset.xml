@@ -93,17 +93,27 @@
     </CheckBoxPreference>
     <!--  add by wangxiaobin 2011-11-11 for modem reset switch end-->
 
+    <!-- add by pengfei at 13-7 for power on select sim card -->
+    <CheckBoxPreference android:key="poweron_ssim"
+	android:title="power on select sim" android:summaryOn="enable"
+	android:summaryOff="disable" android:defaultValue="false">
+    </CheckBoxPreference>
+
    <Preference android:key="log_setting" android:title="Log Settings">
    	<intent android:action="android.intent.action.MAIN"
    	android:targetPackage="com.spreadtrum.android.eng"
    	android:targetClass="com.spreadtrum.android.eng.LogSetting"/>
    </Preference>
 
-   <Preference android:key="misc" android:title="Misc" android:summary="misc">
-   	<intent android:action="android.intent.action.MAIN"
-   		android:targetPackage="com.spreadtrum.android.eng"
-   		android:targetClass="com.spreadtrum.android.eng.Misc" />
-   </Preference>
+    <!-- Modify 20130320 Spreadst of 140023 remove the summary start -->
+    <!-- <Preference android:key="misc" android:summary="misc" android:title="Misc" > -->
+    <Preference android:key="misc" android:title="Misc" >
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetClass="com.spreadtrum.android.eng.Misc"
+            android:targetPackage="com.spreadtrum.android.eng" />
+    </Preference>
+    <!-- Modify 20130320 Spreadst of 140023 remove the summary end -->
 
    	<CheckBoxPreference android:key="accelerometer_rotation"
 			android:title="Accelerometer Rotation"

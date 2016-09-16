@@ -21,7 +21,7 @@ ifneq ($(TARGET_SIMULATOR),true)
 # hw/<SENSORS_HARDWARE_MODULE_ID>.<ro.product.board>.so
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := sensors.$(TARGET_BOARD_PLATFORM)
+LOCAL_MODULE := sensors.$(TARGET_BOOTLOADER_BOARD_NAME)
 
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 
@@ -40,6 +40,7 @@ LOCAL_SRC_FILES := \
 			SensorBase.cpp \
 			InputEventReader.cpp \
 			Lis3dhSensor.cpp \
+			AkmSensor.cpp \
 			sensors.cpp
 
 ifeq ($(BOARD_HAVE_TMD2771),true)

@@ -6,6 +6,16 @@
  * Created:	  2011-05-13
  * Description:  SPRD KEY/LCD Backlight TEST
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
  */
 
 #include <stdio.h>
@@ -37,7 +47,7 @@ static int eng_lcdbacklight_test(int brightness)
 	
 	fd = open(LCD_BACKLIGHT_DEV, O_RDWR);
 
-	if(fd < -1) {
+	if(fd < 0) {
 		SPRD_DBG("%s: open %s fail",__func__, LCD_BACKLIGHT_DEV);
 		return -1;
 	}
@@ -62,7 +72,7 @@ static int eng_keybacklight_test(int brightness)
 	
 	fd = open(KEY_BACKLIGHT_DEV, O_RDWR);
 
-	if(fd < -1) {
+	if(fd < 0) {
 		SPRD_DBG("%s: open %s fail",__func__, KEY_BACKLIGHT_DEV);
 		return -1;
 	}

@@ -1,14 +1,15 @@
 package com.spreadtrum.android.eng;
 
 //import android.preference.PreferenceActivity;
-import android.util.Log;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import android.os.Debug;
+import android.util.Log;
+
 public class engfetch  {
-    
+    private static final boolean DEBUG = Debug.isDebug();
     private static final String TAG = "engfetch";
     
     static {
@@ -64,8 +65,10 @@ public class engfetch  {
         ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
         DataOutputStream outputBufferStream = new DataOutputStream(outputBuffer);
 
-
-        String str=String.format("CMD:%s",cmd);
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+        //String str=String.format("CMD:%s",cmd);
+        String str = new StringBuilder().append("CMD:").append(cmd).toString();
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
         try {
             outputBufferStream.writeBytes(str);
         } catch (IOException e) {
@@ -73,7 +76,7 @@ public class engfetch  {
            return;
         }
         engwrite(sockid,outputBuffer.toByteArray(),outputBuffer.toByteArray().length);
-        Log.d(TAG, "write cmd '"+str+"'");
+        if(DEBUG) Log.d(TAG, "write cmd '"+str+"'");
         engclose(sockid);
     }
     

@@ -488,6 +488,7 @@ int transform_layer(uint32_t srcPhy, uint32_t srcVirt, uint32_t srcFormat, uint3
 		break;
 	case HAL_PIXEL_FORMAT_YV12:
 		input_format = HW_SCALE_DATA_YUV420_3FRAME;
+		break;
 	default:
 		return -1;
 	}

@@ -168,6 +168,10 @@ static int do_parse(AUDIO_TOTAL_T *audio_params_ptr, unsigned int params_size)
         memset(effect_profile, 0, sizeof(struct vbc_eq_profile));
     } else {
         ALOGE("Error: malloc failed for internal struct.");
+        if (fw_header)
+            free(fw_header);
+        if (effect_profile)
+            free(effect_profile);
         return -1;
     }
     ALOGI("do_parse...start");
@@ -200,7 +204,7 @@ static int do_parse(AUDIO_TOTAL_T *audio_params_ptr, unsigned int params_size)
         AUDENHA_SetPara(cur_params_ptr, effect_profile->effect_paras);
         //write buffer to stored file.
         memcpy(effect_profile->magic, VBC_EQ_FIRMWARE_MAGIC_ID, VBC_EQ_FIRMWARE_MAGIC_LEN);
-        memcpy(effect_profile->name, cur_params_ptr->audio_nv_arm_mode_info.ucModeName, VBC_EQ_PROFILE_NAME_MAX);
+        memcpy(effect_profile->name, cur_params_ptr->audio_nv_arm_mode_info.ucModeName, 16);
         //strcpy(effect_profile->name, cur_params_ptr->audio_nv_arm_mode_info.ucModeName);
         ALOGI("effect_profile->name is %s", effect_profile->name);
         fwrite(effect_profile, sizeof(struct vbc_eq_profile), 1, fd_dest_paras);
@@ -230,6 +234,7 @@ int create_vb_effect_params(void)
         ret = do_parse(aud_params_ptr, 4*sizeof(AUDIO_TOTAL_T));
         munmap((void *)aud_params_ptr, 4*sizeof(AUDIO_TOTAL_T));
         close(fd_src_paras);
+        fd_src_paras = -1;
     }
 
     ALOGI("create_vb_effect_params...done");

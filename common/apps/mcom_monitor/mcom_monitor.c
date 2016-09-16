@@ -16,7 +16,7 @@
 
 
 #define DATA_BUF_SIZE (4096)
-static char log_data[DATA_BUF_SIZE];
+static char log_data[DATA_BUF_SIZE+1];
 
 #define MAX_WAIT_COUNT  10
 int main(int argc, char **argv)

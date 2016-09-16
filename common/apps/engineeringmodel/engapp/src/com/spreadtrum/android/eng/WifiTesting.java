@@ -6,7 +6,6 @@ package com.spreadtrum.android.eng;
 import java.util.List;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -16,14 +15,14 @@ import android.content.IntentFilter;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
 public class WifiTesting extends Activity {
-
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String TAG = "WifiTesting";
 	private TextView wifiListTV;
 	private TextView resultTV;

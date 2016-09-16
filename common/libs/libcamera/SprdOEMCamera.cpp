@@ -1,19 +1,20 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+* hardware/sprd/hsdroid/libcamera/sprdOEMcamera.cpp
+ * Dcam HAL based on sc8800g2
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Copyright (C) 2011 Spreadtrum 
+ * 
+ * Author: Xiaozhe wang <xiaozhe.wang@spreadtrum.com>
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
-
 #define LOG_NDEBUG 0
 #define LOG_TAG "SprdCameraOEM"
 //#include <linux/delay.h>
@@ -1884,8 +1885,8 @@ int camera_preview_init(void)
     	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;   
 	fmt.fmt.pix.width = g_dcam_dimensions.display_width;   
     	fmt.fmt.pix.height = g_dcam_dimensions.display_height;   
-    //V4L2_PIX_FMT_YVU420, V4L2_PIX_FMT_YUV420 ！ Planar formats with 1/2 horizontal and vertical chroma resolution, also known as YUV 4:2:0   
-    //V4L2_PIX_FMT_YUYV ！ Packed format with 1/2 horizontal chroma resolution, also known as YUV 4:2:2   
+    //V4L2_PIX_FMT_YVU420, V4L2_PIX_FMT_YUV420 \A1\AA Planar formats with 1/2 horizontal and vertical chroma resolution, also known as YUV 4:2:0   
+    //V4L2_PIX_FMT_YUYV \A1\AA Packed format with 1/2 horizontal chroma resolution, also known as YUV 4:2:2   
     //wxz: pixelformat support: V4L2_PIX_FMT_YUV420 and V4L2_PIX_FMT_RGB24;
     	fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV422P; //V4L2_PIX_FMT_RGB32;//V4L2_PIX_FMT_RGB565X, //V4L2_PIX_FMT_YUYV; //wxz:TOOD
     	fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;   
@@ -2742,8 +2743,8 @@ int camera_capture_init(void)
     	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;   
 	fmt.fmt.pix.width = g_dcam_dimensions.picture_width;   
     	fmt.fmt.pix.height = g_dcam_dimensions.picture_height;   
-    //V4L2_PIX_FMT_YVU420, V4L2_PIX_FMT_YUV420 ！ Planar formats with 1/2 horizontal and vertical chroma resolution, also known as YUV 4:2:0   
-    //V4L2_PIX_FMT_YUYV ！ Packed format with 1/2 horizontal chroma resolution, also known as YUV 4:2:2   
+    //V4L2_PIX_FMT_YVU420, V4L2_PIX_FMT_YUV420 \A1\AA Planar formats with 1/2 horizontal and vertical chroma resolution, also known as YUV 4:2:0   
+    //V4L2_PIX_FMT_YUYV \A1\AA Packed format with 1/2 horizontal chroma resolution, also known as YUV 4:2:2   
     //wxz: pixelformat support: V4L2_PIX_FMT_YUV420 and V4L2_PIX_FMT_RGB24;
     	fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV422P;//V4L2_PIX_FMT_YUYV; //wxz:TOOD
     	fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;   

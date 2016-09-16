@@ -5,6 +5,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.CheckBoxPreference;
@@ -14,7 +15,7 @@ import android.preference.PreferenceScreen;
 import android.util.Log;
 
 public class WifiCMCCTest extends PreferenceActivity {
-
+    private static final boolean DEBUG = Debug.isDebug();
     private static final String TAG = "WifiCMCCTest";
 
     private static final boolean debug = true;
@@ -195,10 +196,12 @@ public class WifiCMCCTest extends PreferenceActivity {
         }*/
 
         if ("run_test".equals(key)) {
-            CheckBoxPreference checkbox = (CheckBoxPreference) preference;
-            if (checkbox.isChecked()) {
-                cmccTest();
-                checkbox.setEnabled(false);
+	    if(preference instanceof CheckBoxPreference){
+                CheckBoxPreference checkbox = (CheckBoxPreference) preference;
+                if (checkbox.isChecked()) {
+                    cmccTest();
+                    checkbox.setEnabled(false);
+                }
             }
         }
         return super.onPreferenceTreeClick(preferenceScreen, preference);
@@ -223,8 +226,7 @@ public class WifiCMCCTest extends PreferenceActivity {
             cmccStop();
         }
 
-        if (debug)
-            Log.d(TAG, "outWifiState=" + outWifiState);
+        if(DEBUG) Log.d(TAG, "outWifiState=" + outWifiState);
         if (outWifiState == WifiManager.WIFI_STATE_ENABLED
                 || outWifiState == WifiManager.WIFI_STATE_ENABLING) {
             wifiManager.setWifiEnabled(true);
@@ -244,8 +246,7 @@ public class WifiCMCCTest extends PreferenceActivity {
         // }
         writeCmd("CMCC STOP");
         mHandler.sendEmptyMessage(CMCC_STOP);
-        if (debug)
-            Log.d(TAG, "xbin:CMCC STOP");
+        if(DEBUG) Log.d(TAG, "xbin:CMCC STOP");
 
         // turn off wifi
         wifiManager.setWifiEnabled(false);
@@ -257,13 +258,13 @@ public class WifiCMCCTest extends PreferenceActivity {
     private void cmccStart() {
         // // turn off wifi
         // if (debug)
-        // Log.d(TAG, "cmcc start");
+        // if(DEBUG) Log.d(TAG, "cmcc start");
         // wifiManager.setWifiEnabled(false);
         // // CMD start
         // waitTimes = 10;
         // if (!waitForWifiOff()) {
         // if (debug)
-        // Log.d(TAG, "waitForWifiOff = false");
+        // if(DEBUG) Log.d(TAG, "waitForWifiOff = false");
         // mHandler.sendEmptyMessage(WIFI_OFF_FAIL);
         // return;
         // }
@@ -272,8 +273,7 @@ public class WifiCMCCTest extends PreferenceActivity {
         } else {
             writeCmd("NONANRITSU START");
         }
-        if (debug)
-            Log.d(TAG, "xbin:CMCC START");
+        if(DEBUG) Log.d(TAG, "xbin:CMCC START");
         // sleep 10s
         try {
             Thread.sleep(10000);
@@ -289,14 +289,13 @@ public class WifiCMCCTest extends PreferenceActivity {
         // waitTimes = 10;
         // if (!waitForWifiOn()) {
         // if (debug)
-        // Log.d(TAG, "waitForWifiOn = false");
+        // if(DEBUG) Log.d(TAG, "waitForWifiOn = false");
         // mHandler.sendEmptyMessage(WIFI_ON_FAIL);
         // return;
         // }
         writeCmd("CMCC TEST");
         mHandler.sendEmptyMessage(CMCC_START);
-        if (debug)
-            Log.d(TAG, "xbin:CMCC TEST");
+        if(DEBUG) Log.d(TAG, "xbin:CMCC TEST");
 
     }
 
@@ -312,11 +311,9 @@ public class WifiCMCCTest extends PreferenceActivity {
     private boolean waitForWifiOn() {
         int wifiState;
         while (waitTimes-- > 0) {
-            if (debug)
-                Log.d(TAG, "on waitTimes=" + waitTimes);
+            if(DEBUG) Log.d(TAG, "on waitTimes=" + waitTimes);
             wifiState = wifiManager.getWifiState();
-            if (debug)
-                Log.d(TAG, " wait on wifiState=" + wifiState);
+            if(DEBUG) Log.d(TAG, " wait on wifiState=" + wifiState);
             if (wifiState == WifiManager.WIFI_STATE_ENABLED) {
                 break;
             } else {
@@ -337,11 +334,9 @@ public class WifiCMCCTest extends PreferenceActivity {
     private boolean waitForWifiOff() {
         int wifiState;
         while (waitTimes-- > 0) {
-            if (debug)
-                Log.d(TAG, "off waitTimes=" + waitTimes);
+            if(DEBUG) Log.d(TAG, "off waitTimes=" + waitTimes);
             wifiState = wifiManager.getWifiState();
-            if (debug)
-                Log.d(TAG, "off wifiState=" + wifiState);
+            if(DEBUG) Log.d(TAG, "off wifiState=" + wifiState);
             if (wifiState == WifiManager.WIFI_STATE_DISABLED) {
                 break;
             } else {

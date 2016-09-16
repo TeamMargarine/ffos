@@ -19,6 +19,8 @@
 #include "jpeg_jfif.h"
 #include "jpeg_common.h"
 
+#define PROGRESSIVE_SUPPORT 0
+
 /*down sample*/
 #define DOWN_SAMPLE_DIS	0
 #define DOWN_SAMPLE_EN	1
@@ -106,6 +108,66 @@ typedef void (*JPEG_TRANSFORM_FUN)(int16 *block_coeff, uint8 *output_buf, const 
 /**---------------------------------------------------------------------------*
 **                         Macro define                               
 **---------------------------------------------------------------------------*/
+
+#if PROGRESSIVE_SUPPORT
+typedef struct 
+{
+	uint8		*src_buf;		/* start of buffer */
+	uint32      	src_buf_len;   /* src mem buffer len */		
+	uint32		bytes_in_buf;
+	uint32		jstream_words;
+	uint32		jremain_bit_num;
+	uint32      	read_write_bytes;
+} bitstream_info;
+
+/* Derived data constructed for each Huffman table */
+
+#define HUFF_LOOKAHEAD 	8	/* # of bits of lookahead */
+
+typedef struct {
+  /* Basic tables: (element [0] of each array is unused) */
+  int32 maxcode[18];		/* largest code of length k (-1 if none) */
+  /* (maxcode[17] is a sentinel to ensure jpeg_huff_decode terminates) */
+  int32 valoffset[17];		/* huffval[] offset for codes of length k */
+  /* valoffset[k] = huffval[] index of 1st symbol of code length k, less
+   * the smallest code of length k; so given a code of length k, the
+   * corresponding symbol is huffval[code + valoffset[k]]
+   */
+    /* Link to public Huffman table (needed only in jpeg_huff_decode) */
+  HUFF_TBL_T *pub;
+  
+  /* Lookahead tables: indexed by the next HUFF_LOOKAHEAD bits of
+   * the input data stream.  If the next Huffman code is no more
+   * than HUFF_LOOKAHEAD bits long, we can obtain its length and
+   * the corresponding symbol directly from these tables.
+   */
+  int32 look_nbits[1<<HUFF_LOOKAHEAD]; /* # bits, or 0 if too long */
+  uint8 look_sym[1<<HUFF_LOOKAHEAD]; /* symbol, or unused */
+} d_derived_tbl;
+
+typedef struct 
+{
+	uint16		restarts_to_go;/* MCUs left in this restart interval */
+	uint16		next_restart_num;
+	uint32		last_dc_value[MAX_COMPS_IN_SCAN];
+	uint32		EOBRUN;
+	 /* Pointers to derived tables (these workspaces have image lifespan) */
+ 	d_derived_tbl * vld_table[NUM_HUFF_TBLS];
+  	d_derived_tbl * ac_derived_tbl; /* active table during an AC scan */
+	BOOLEAN     (*decode_mcu) (int16 **MCU_data);
+} phuff_entropy_info;
+
+typedef struct 
+{
+	bitstream_info address;
+	uint8 comps_in_scan;/* number of components encoded in this scan */
+	jpeg_component_info cur_comp_info[MAX_COMPS_IN_SCAN];/* their SOF/comp_info[] indexes */
+	int16 id[3];
+	uint16 Ss, Se;/* progressive JPEG spectral selection parms */
+	uint16 Ah, Al;/* progressive JPEG successive approx. parms */
+	phuff_entropy_info entropy;
+} JPEG_SOS_T;
+#endif//PROGRESSIVE_SUPPORT
 
 typedef struct jpeg_codec_tag
 {
@@ -214,6 +276,9 @@ typedef struct jpeg_progressive_info_tag
 	uint8				comp_id_map[3];      /*index map for three component of one scan*/
 
 	jpeg_component_info * comp_info;
+#if PROGRESSIVE_SUPPORT	
+	JPEG_SOS_T		*buf_storage;//store the all content of sos
+#endif
 	jpeg_component_info *cur_comp_info[MAX_COMPS_IN_SCAN];
 
 	uint8			low_quality_idct;

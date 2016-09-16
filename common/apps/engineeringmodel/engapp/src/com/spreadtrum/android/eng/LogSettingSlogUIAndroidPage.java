@@ -11,109 +11,115 @@ import android.widget.CheckBox;
 
 /* SlogUI Added by Yuntao.xiao*/
 
-public class LogSettingSlogUIAndroidPage extends Activity {
-	// Dim views
-	private CheckBox chkGeneral;
-	private CheckBox chkSystem;
-	private CheckBox chkRadio;
-	private CheckBox chkKernel;
-	private CheckBox chkMain;
+public class LogSettingSlogUIAndroidPage extends Activity implements SlogUISyncState {
+    // Dim views
+    private CheckBox chkGeneral;
+    private CheckBox chkSystem;
+    private CheckBox chkRadio;
+    private CheckBox chkKernel;
+    private CheckBox chkMain;
 
-	// public static Handler mHandler;
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_android);
+    // public static Handler mHandler;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_android);
 
-		// Init views
-		chkGeneral = (CheckBox) findViewById(R.id.chk_android_general);
-		chkSystem = (CheckBox) findViewById(R.id.chk_android_system);
-		chkRadio = (CheckBox) findViewById(R.id.chk_android_radio);
-		chkKernel = (CheckBox) findViewById(R.id.chk_android_kernel);
-		chkMain = (CheckBox) findViewById(R.id.chk_android_main);
+        // Init views
+        chkGeneral = (CheckBox) findViewById(R.id.chk_android_general);
+        chkSystem = (CheckBox) findViewById(R.id.chk_android_system);
+        chkRadio = (CheckBox) findViewById(R.id.chk_android_radio);
+        chkKernel = (CheckBox) findViewById(R.id.chk_android_kernel);
+        chkMain = (CheckBox) findViewById(R.id.chk_android_main);
 
-		// Make sure that, views match to slog.conf
-		SyncState();
+        // Make sure that, views match to slog.conf
+        // No need to run syncState in onCreate.
+        // syncState();
 
-		// Set onclick listenner
-		ClkListenner chklisten = new ClkListenner();
-		chkGeneral.setOnClickListener(chklisten);
-		chkSystem.setOnClickListener(chklisten);
-		chkRadio.setOnClickListener(chklisten);
-		chkKernel.setOnClickListener(chklisten);
-		chkMain.setOnClickListener(chklisten);
+        // Set onclick listenner
+        ClkListenner chklisten = new ClkListenner();
+        chkGeneral.setOnClickListener(chklisten);
+        chkSystem.setOnClickListener(chklisten);
+        chkRadio.setOnClickListener(chklisten);
+        chkKernel.setOnClickListener(chklisten);
+        chkMain.setOnClickListener(chklisten);
 
-	}
+    }
 
-	// Dim On click Listenner
-	class ClkListenner implements OnClickListener {
-		public void onClick(View onClickView) {
+    // Dim On click Listenner
+    class ClkListenner implements OnClickListener {
+        public void onClick(View onClickView) {
 
-			switch (onClickView.getId()) {
-			case R.id.chk_android_general:
-				SlogAction.SetState(SlogAction.ANDROIDKEY,
-						chkGeneral.isChecked());
-				SyncState();
-				break;
+            switch (onClickView.getId()) {
+            case R.id.chk_android_general:
+                SlogAction.SetState(SlogAction.ANDROIDKEY,
+                        chkGeneral.isChecked());
+                syncState();
+                break;
 
-			case R.id.chk_android_system:
-				SlogAction.SetState(SlogAction.SYSTEMKEY,
-						chkSystem.isChecked(), false);
-				break;
+            case R.id.chk_android_system:
+                SlogAction.SetState(SlogAction.SYSTEMKEY,
+                        chkSystem.isChecked(), false);
+                break;
 
-			case R.id.chk_android_kernel:
-				SlogAction.SetState(SlogAction.KERNELKEY,
-						chkKernel.isChecked(), false);
-				break;
+            case R.id.chk_android_kernel:
+                SlogAction.SetState(SlogAction.KERNELKEY,
+                        chkKernel.isChecked(), false);
+                break;
 
-			case R.id.chk_android_main:
-				SlogAction.SetState(SlogAction.MAINKEY, chkMain.isChecked(),
-						false);
-				break;
+            case R.id.chk_android_main:
+                SlogAction.SetState(SlogAction.MAINKEY, chkMain.isChecked(),
+                        false);
+                break;
 
-			case R.id.chk_android_radio:
-				SlogAction.SetState(SlogAction.RADIOKEY, chkRadio.isChecked(),
-						false);
-				break;
+            case R.id.chk_android_radio:
+                SlogAction.SetState(SlogAction.RADIOKEY, chkRadio.isChecked(),
+                        false);
+                break;
 
-			default:
-				Log.w("Slog->AndroidPage", "Wrong id given.");
-			}
+            default:
+                Log.w("Slog->AndroidPage", "Wrong id given.");
+            }
 
-			return;
-		}
+            return;
+        }
 
-	}
+    }
 
-	@Override
-	protected void onResume() {
-		super.onResume();
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-		SyncState();
+        syncState();
+    }
 
-	}
-
-	private void SyncState() {
-		boolean tempHost = SlogAction.GetState(SlogAction.ANDROIDKEY);
-		chkGeneral.setEnabled(true);
+    @Override
+    public void syncState() {
+        boolean tempHost = SlogAction.GetState(SlogAction.ANDROIDKEY);
+        chkGeneral.setEnabled(true);
         boolean tempHostOn = SlogAction.GetState(SlogAction.GENERALKEY, true).equals(SlogAction.GENERALON);
         boolean tempHostLowPower = SlogAction.GetState(SlogAction.GENERALKEY, true).equals(SlogAction.GENERALLOWPOWER);
         boolean tempHostGen = tempHostOn || tempHostLowPower;
-		if (!tempHostGen) {
-			chkGeneral.setEnabled(false);
-			tempHost = false;
-		}
+        if (!tempHostGen) {
+            chkGeneral.setEnabled(false);
+            tempHost = false;
+        }
 
-		chkGeneral.setChecked(tempHost);
+        chkGeneral.setChecked(tempHost);
 
-		SlogAction.SetCheckBoxBranchState(chkSystem, tempHost,
-				SlogAction.GetState(SlogAction.SYSTEMKEY));
-		SlogAction.SetCheckBoxBranchState(chkRadio, tempHost,
-				SlogAction.GetState(SlogAction.RADIOKEY));
-		SlogAction.SetCheckBoxBranchState(chkKernel, tempHost,
-				SlogAction.GetState(SlogAction.KERNELKEY));
-		SlogAction.SetCheckBoxBranchState(chkMain, tempHost,
-				SlogAction.GetState(SlogAction.MAINKEY));
+        SlogAction.SetCheckBoxBranchState(chkSystem, tempHost,
+                SlogAction.GetState(SlogAction.SYSTEMKEY));
+        SlogAction.SetCheckBoxBranchState(chkRadio, tempHost,
+                SlogAction.GetState(SlogAction.RADIOKEY));
+        SlogAction.SetCheckBoxBranchState(chkKernel, tempHost,
+                SlogAction.GetState(SlogAction.KERNELKEY));
+        SlogAction.SetCheckBoxBranchState(chkMain, tempHost,
+                SlogAction.GetState(SlogAction.MAINKEY));
 
-	}
+    }
+    
+    @Override
+    public void onSlogConfigChanged() {
+        syncState();
+    }
 }

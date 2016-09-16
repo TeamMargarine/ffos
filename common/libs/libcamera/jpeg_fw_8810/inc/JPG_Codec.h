@@ -172,6 +172,7 @@ extern uint32 jstream_len;
 extern uint32 jstream_current_pos;
 extern uint32 jstream_words;
 extern uint32 jremain_bit_num;
+extern const int16 aanscales[];
 extern int32 UV_multiple;
 
 void JPEG_EncodeMCU(void);

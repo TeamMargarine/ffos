@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef _CMR_COMMON_H_
 #define _CMR_COMMON_H_
 
@@ -35,7 +34,8 @@ extern "C"
 
 #define CMR_LOGE(format,...) ALOGE(DEBUG_STR format, DEBUG_ARGS, ##__VA_ARGS__)
 
-#define CMR_LOGI(format,...) ALOGI(DEBUG_STR format, DEBUG_ARGS, ##__VA_ARGS__)
+//#define CMR_LOGI(format,...) LOGI(DEBUG_STR format, DEBUG_ARGS, ##__VA_ARGS__)
+#define CMR_LOGI(format,...)
 
 #define CMR_LOGW(format,...) ALOGW(DEBUG_STR format, DEBUG_ARGS, ##__VA_ARGS__)
 
@@ -45,16 +45,19 @@ extern "C"
 #define CMR_EVT_SENSOR_BASE                (1 << 19)
 #define CMR_EVT_JPEG_BASE                  (1 << 20)
 #define CMR_EVT_OEM_BASE                   (1 << 21)
+#define CMR_EVT_AF_CB_BASE                 (1 << 22)
 
 #define RAWRGB_BIT_WIDTH                   10
 #define CMR_ZOOM_FACTOR                    2
-#define CMR_SLICE_HEIGHT                   128
+#define CMR_SLICE_HEIGHT                   256//128
 #define CMR_IMG_CNT_MAX                    8
 #define CMR_JPEG_COMPRESS_FACTOR           1
 #define CMR_JPEG_SZIE(w,h)                 (uint32_t)((w)*(h)/CMR_JPEG_COMPRESS_FACTOR)
 #define CMR_EVT_MASK_BITS                  (uint32_t)(CMR_EVT_V4L2_BASE | CMR_EVT_CVT_BASE | \
 					CMR_EVT_ISP_BASE | CMR_EVT_SENSOR_BASE | \
-					CMR_EVT_JPEG_BASE | CMR_EVT_OEM_BASE)
+					CMR_EVT_JPEG_BASE | CMR_EVT_OEM_BASE | CMR_EVT_AF_CB_BASE)
+
+#define CMR_AF_STOPING_STAT_MSK            (1<<16)
 
 #define CMR_RTN_IF_ERR(n)                                              \
 		do {                                                   \

@@ -53,10 +53,14 @@ typedef struct jpegdec_input_params
 	uint32_t   src_size;
 	void *	src_virt_buf;
 	uint32_t	src_phy_buf;
-         void *	target_virt_buf_Y;
+    void *	target_virt_buf_Y;
 	uint32_t	target_phy_buf_Y;		 
 	void *	target_virt_buf_UV;
 	uint32_t	target_phy_buf_UV;		
+	void *	pang_virt_buf_Y;
+	uint32_t	pang_phy_buf_Y;
+	void *	pang_virt_buf_UV;
+	uint32_t	pang_phy_buf_UV;
 	uint32_t   slice_height;
 	uint32_t  crop_x;
 	uint32_t  crop_y;
@@ -82,12 +86,17 @@ typedef struct jpegdec_params
 	JPEGDEC_QUALITY_E quality;
 
 	void *	src_buf;
-         void *	target_buf_Y;
+    void *	target_buf_Y;
 	void *	target_buf_UV;
 
 	uint32_t	src_phy_buf;
 	uint32_t	target_phy_buf_Y;
 	uint32_t   target_phy_buf_UV;
+
+	void *	pang_buf_Y;
+	void *	pang_buf_UV;
+	uint32_t	pang_phy_buf_Y;
+	uint32_t   pang_phy_buf_UV;
 
 	uint32_t  crop_x;
 	uint32_t  crop_y;

@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+ifneq ($(TARGET_SIMULATOR),true)
 LOCAL_PATH := $(call my-dir)
 
 # HAL module implemenation, not prelinked and stored in
@@ -49,23 +49,32 @@ LOCAL_SHARED_LIBRARIES := liblog libcutils libGLESv1_CM $(SHARED_MEM_LIBS)
 # Include the UMP header files
 LOCAL_C_INCLUDES := $(MALI_DDK_PATH)/mali/src/ump/include system/core/include/
 LOCAL_C_INCLUDES += \
-    $(TARGET_OUT_INTERMEDIATES)/KERNEL/usr/include/video/
+    $(TARGET_OUT_INTERMEDIATES)/KERNEL/usr/include/video/ \
+    $(TARGET_OUT_INTERMEDIATES)/KERNEL/
 LOCAL_CFLAGS:= -DLOG_TAG=\"gralloc.$(TARGET_BOARD_PLATFORM)\"
 # -DGRALLOC_32_BITS -DSTANDARD_LINUX_SCREEN
 endif
 
-ifeq ($(strip $(USE_UI_OVERLAY)),true)
-        LOCAL_CFLAGS += -DUSE_UI_OVERLAY
-endif
 ifeq ($(strip $(USE_RGB_VIDEO_LAYER)) , true)
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc8810)
         LOCAL_CFLAGS += -DDRM_SPECIAL_PROCESS
 endif
 endif
+
+ifeq ($(strip $(USE_UI_OVERLAY)),true)
+        LOCAL_CFLAGS += -DUSE_UI_OVERLAY
+endif
+
+ifneq ($(strip $(TARGET_BUILD_VARIANT)), user)
+        LOCAL_CFLAGS += -DDUMP_FB
+endif
+
 LOCAL_SRC_FILES := \
 	gralloc_module.cpp \
 	alloc_device.cpp \
-	framebuffer_device.cpp
+	framebuffer_device.cpp \
+	dump_bmp.cpp
 
 #LOCAL_CFLAGS+= -DMALI_VSYNC_EVENT_REPORT_ENABLE
 include $(BUILD_SHARED_LIBRARY)
+endif

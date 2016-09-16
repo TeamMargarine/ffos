@@ -11,25 +11,27 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemProperties;
 import android.util.Log;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.View.OnClickListener;
 import android.view.View.OnFocusChangeListener;
+import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
-import android.widget.AdapterView.OnItemSelectedListener;
 
 public class WifiEUT extends Activity implements OnClickListener,
 		OnItemSelectedListener, OnFocusChangeListener {
-
+    private static final boolean DEBUG = Debug.isDebug();
 	public static final String TAG = "WifiEUT";
 	public static final int CW_FLAG = 1;
 	public static final int TX_FLAG = 2;
@@ -90,7 +92,7 @@ public class WifiEUT extends Activity implements OnClickListener,
 			e.printStackTrace();
 		}
 		//startcmd("WIFI");
-		
+		SystemProperties.set("ctl.start", "enghardwaretest");
 	}
 
 	private void initui() {
@@ -382,6 +384,7 @@ public class WifiEUT extends Activity implements OnClickListener,
 	protected void onDestroy() {
 		deinitTestNoUi();
 		//startcmd("STOP");
+		SystemProperties.set("ctl.stop", "enghardwaretest");
 		super.onDestroy();
 	}
 
@@ -406,7 +409,7 @@ public class WifiEUT extends Activity implements OnClickListener,
 
 	private void showDialog(String msg, String title) {
 		if(mHaveFinish){
-			Log.d(TAG, "activity have finished !");
+			if(DEBUG) Log.d(TAG, "activity have finished !");
 			return;
 		}
 		AlertDialog.Builder builder = new AlertDialog.Builder(WifiEUT.this);
@@ -610,8 +613,10 @@ public class WifiEUT extends Activity implements OnClickListener,
 		ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
 		DataOutputStream outputBufferStream = new DataOutputStream(outputBuffer);
 
-
-		String str=String.format("%s%s", "CMD:",cmd);
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+        //String str=String.format("%s%s", "CMD:",cmd);
+        String str = new StringBuilder().append("CMD:").append(cmd).toString();
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 		try {
 			outputBufferStream.writeBytes(str);
 		} catch (IOException e) {

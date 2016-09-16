@@ -209,6 +209,9 @@ static int snap2jpg(const char * filename, int quality, FBInfo* fb)
 	row_stride = fb_width(fb) * 2;
 	JSAMPLE* image_buffer = malloc(3 * fb_width(fb));
 
+	if(NULL==image_buffer)
+		return 0;
+
 	while (cinfo.next_scanline < cinfo.image_height) 
 	{
 		int i = 0;
@@ -226,7 +229,7 @@ static int snap2jpg(const char * filename, int quality, FBInfo* fb)
 
 	jpeg_finish_compress(&cinfo);
 	fclose(outfile);
-
+	free(image_buffer);
 	jpeg_destroy_compress(&cinfo);
 
 	return 0;

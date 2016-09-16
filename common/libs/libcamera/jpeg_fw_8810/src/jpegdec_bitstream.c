@@ -43,6 +43,24 @@ uint32 s_file_offset;
 
 static uint32 ESC_MODE = 1;
 
+#if PROGRESSIVE_SUPPORT
+void Update_Global_Bitstrm_Info(bitstream_info *pBitstrmInfo)
+{
+	s_inter_buf_bitstream = pBitstrmInfo->src_buf;
+	s_jremain_bit_num = pBitstrmInfo->jremain_bit_num;
+	s_jstream_words = pBitstrmInfo->jstream_words;	
+	s_jremain_byte_num = pBitstrmInfo->bytes_in_buf;
+}
+
+void Update_Local_Bitstrm_Info(bitstream_info *pBitstrmInfo)
+{
+	pBitstrmInfo->src_buf = s_inter_buf_bitstream;
+	pBitstrmInfo->jremain_bit_num = s_jremain_bit_num;
+	pBitstrmInfo->jstream_words = s_jstream_words;	
+	pBitstrmInfo->bytes_in_buf = s_jremain_byte_num;
+}
+#endif
+
 int32 check_RstMarker(void)
 {
 	uint32 i = s_jremain_bit_num>>3;
@@ -98,7 +116,29 @@ void JPEG_Fill_Bit_Buffer(void)
 		}
 	}
 }
+#if PROGRESSIVE_SUPPORT
+uint8 huff_DECODE_Progressive(d_derived_tbl *tbl, int32 min_bits)
+{
+	register uint16 l = min_bits;
+	register int32 code;
 
+	CHECK_BIT_BUFFER(l);
+	code = JPEG_GETBITS(l);
+	while(code > tbl->maxcode[l])
+	{
+		CHECK_BIT_BUFFER(1);
+		code = ((code << 1) | JPEG_GETBITS(1));
+		l++;
+	}
+
+	if(l > 16)
+	{
+		return 0;
+	}
+
+	return tbl->pub->huffval[(int32)(code + tbl->valoffset[l])];
+}
+#endif
 PUBLIC JPEG_RET_E  JpegDec_InitBitream(JPEG_DEC_INPUT_PARA_T  *jpeg_dec_input)
 {
 	if(PNULL != jpeg_dec_input->read_bitstream)

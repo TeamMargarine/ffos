@@ -1,19 +1,15 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2012 Spreadtrum Communications Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
-
 #include <utils/Log.h>
 #include "sensor.h"
 #include "jpeg_exif_header.h"
@@ -364,49 +360,47 @@ static const uint8_t s_ov5640_lnc_08[]=
 
 static const uint8_t s_ov5640_ae_weight_customer[]=
 {
-#include "sensor_ov5640_ae_weight_customer.dat"
+	0x00
 };
 
 /* 00: 0x->50hz 1x->60hz x0->normal x1->night*/
 static const uint16_t s_ov5640_aes_00[SENSOR_AE_NUM]={
-#include "sensor_ov5640_aes_00.dat"
+	0x00
 };
 
 static const uint16_t s_ov5640_aeg_00[SENSOR_AE_NUM]={
-#include "sensor_ov5640_aeg_00.dat"
+	0x00
 };
 
 static const uint16_t s_ov5640_aes_10[SENSOR_AE_NUM]={
-#include "sensor_ov5640_aes_10.dat"
+	0x00
 };
 
 static const uint16_t s_ov5640_aeg_10[SENSOR_AE_NUM]={
-#include "sensor_ov5640_aeg_10.dat"
+	0x00
 };
 
 static const uint16_t s_ov5640_aes_01[SENSOR_AE_NUM]={
-#include "sensor_ov5640_aes_01.dat"
+	0x00
 };
 
 static const uint16_t s_ov5640_aeg_01[SENSOR_AE_NUM]={
-#include "sensor_ov5640_aeg_01.dat"
+	0x00
 };
 
 static const uint16_t s_ov5640_aes_11[SENSOR_AE_NUM]={
-#include "sensor_ov5640_aes_11.dat"
+	0x00
 };
 
 static const uint16_t s_ov5640_aeg_11[SENSOR_AE_NUM]={
-#include "sensor_ov5640_aeg_11.dat"
+	0x00
 };
 #if 0
 static const uint8_t s_ov5640_tune_info[sizeof(struct sensor_raw_tune_info)]={
 #include "sensor_ov5640_tune_info.dat"
 };
 #endif
-static struct sensor_raw_tune_info s_ov5640_tune_info={
-	0x00
-};
+static struct sensor_raw_tune_info s_ov5640_tune_info;
 
 static struct sensor_raw_fix_info s_ov5640_fix_info={
 //ae
@@ -571,7 +565,12 @@ LOCAL SENSOR_IOCTL_FUNC_TAB_T s_ov5640_ioctl_func_tab = {
 	PNULL, //meter_mode
 	PNULL, //get_status
 	PNULL,
+#ifdef CONFIG_CAMERA_SENSOR_NEW_FEATURE
+	PNULL,
 	PNULL
+#else
+	PNULL
+#endif
 };
 
 SENSOR_INFO_T g_ov5640_raw_info = {
@@ -785,6 +784,10 @@ LOCAL uint32_t _ov5640_BeforeSnapshot(uint32_t param)
 	uint8_t ret_l, ret_m, ret_h, Gain, Lines_10ms;
 	uint16_t ulCapture_Exposure, Preview_Maxlines;
 	uint32_t Capture_MaxLines, g_preview_exposure;
+	uint32_t cap_mode = (param>>CAP_MODE_BITS);
+
+	param = param&0xffff;
+	SENSOR_PRINT("%d,%d.",cap_mode,param);
 
 	if (SENSOR_MODE_PREVIEW_ONE >= param) {
 		return SENSOR_SUCCESS;

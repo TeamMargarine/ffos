@@ -6,14 +6,13 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Debug;
 import android.provider.BaseColumns;
 import android.util.Log;
 
@@ -22,6 +21,7 @@ import android.util.Log;
 //import dalvik.system.VMRuntime;
 
 public class EngSqlite {
+    private static final boolean DEBUG = Debug.isDebug();
     private static final String TAG = "EngSqlite";
     private Context mContext;
     private SQLiteDatabase mSqLiteDatabase = null;
@@ -50,9 +50,10 @@ public class EngSqlite {
                 os = new DataOutputStream(p.getOutputStream());
                 BufferedInputStream err = new BufferedInputStream(p.getErrorStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(err));
-                Log.v("Vtools","os= "+br.readLine());
+                if(DEBUG) Log.d("Vtools","os= "+br.readLine());
                 Runtime.getRuntime().exec("chmod 777 "+file.getAbsolutePath());
                 int status = p.waitFor();
+		Log.d(TAG, "process :"+status+"has finished");
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -119,7 +120,7 @@ public class EngSqlite {
         cv.put(ENG_STRING2INT_VALUE,value);
 
         long returnValue= mSqLiteDatabase.insert(ENG_STRING2INT_TABLE, null, cv);
-        Log.e(TAG, "returnValue" + returnValue);
+        if(DEBUG) Log.d(TAG, "returnValue" + returnValue);
         if (returnValue == -1) {
              Log.e(TAG, "insert DB error!");
         }

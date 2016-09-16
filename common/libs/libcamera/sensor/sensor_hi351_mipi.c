@@ -1,18 +1,22 @@
-/*
- * Copyright (C) 2008 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/******************************************************************************
+ ** Copyright (c) 
+ ** File Name:        sensor_HI351.c                                           *
+ ** Author:                                                       *
+ ** DATE:                                                              *
+ ** Description:   This file contains driver for sensor OV2640. 
+ **                                                          
+ ******************************************************************************
+
+ ******************************************************************************
+ **                        Edit History                                       *
+ ** ------------------------------------------------------------------------- *
+ ** DATE           NAME             DESCRIPTION                               *
+ **       
+ ******************************************************************************/
+
+/**---------------------------------------------------------------------------*
+ **                         Dependencies                                      *
+ **---------------------------------------------------------------------------*/
 
 #include <utils/Log.h>
 #include "sensor.h"
@@ -4119,6 +4123,7 @@ LOCAL const SENSOR_REG_T HI351_common[]=
 	           
 	{0xb8, 0x29},//LSC GAIN B
 
+
 	{0xb9, 0x80},
 	{0xba, 0x2a},//LSC GAIN R
 	{0xbb, 0x7a},
@@ -6622,7 +6627,7 @@ LOCAL const SENSOR_REG_T HI351_common[]=
 	//{0x0c, 0xf0}, //Parallel Line Off
 	
 	{0x03, 0x00},
-	{0x11, 0x80}, // STEVE 0frame skip, XY flip 
+	{0x11, 0x83}, // STEVE 0frame skip, XY flip 
 	{0x01, 0xf0}, //sleep off
 	
 	{0x03, 0xC0},
@@ -6692,7 +6697,7 @@ LOCAL const SENSOR_REG_T HI351_640X480[]=
 	
 	{0x03, 0x00}, 
 	{0x10, 0x10}, //Sub1/2 + Pre1
-	{0x11, 0x80}, // STEVE 0 skip Fix Frame Off, XY Flip
+	{0x11, 0x83}, // STEVE 0 skip Fix Frame Off, XY Flip
 	{0x13, 0x80}, //Fix AE Set Off
 	{0x14, 0x70}, // for Pre2mode
 	{0x17, 0x04}, // for Pre2mode
@@ -7039,7 +7044,7 @@ LOCAL uint32_t HI351_InitExt(uint32_t param)	//wujinyou, 2012.11.14
 	     			//sensor_reg_tab_info_ptr->reg_count, g_is_main_sensor);
 
 	timestamp_new = systemTime(CLOCK_MONOTONIC);
-	SENSOR_PRINT("SENSOR: HI351_InitExt end, ret=%d, time=%d us\n", ret, (timestamp_new-timestamp_old)/1000);
+	SENSOR_PRINT("SENSOR: HI351_InitExt end, ret=%d, time=%d us\n", ret, (uint32_t)(timestamp_new-timestamp_old)/1000);
 
 	return SENSOR_SUCCESS;
 }
@@ -7102,7 +7107,12 @@ LOCAL SENSOR_IOCTL_FUNC_TAB_T s_HI351_ioctl_func_tab =
     PNULL, //meter_mode
     PNULL, //get_status
     _hi351_StreamOn,
-    _hi351_StreamOff
+#ifdef CONFIG_CAMERA_SENSOR_NEW_FEATURE
+	_hi351_StreamOff,
+	PNULL
+#else
+	_hi351_StreamOff
+#endif
 };
 
 /**---------------------------------------------------------------------------*
@@ -8840,7 +8850,13 @@ LOCAL uint32_t _HI351_set_work_mode(uint32_t mode)
 /******************************************************************************/
 LOCAL uint32_t _HI351_BeforeSnapshot(uint32_t param)
 {
-	uint32_t  preview_mode = (param >= SENSOR_MODE_PREVIEW_TWO) ? \
+	uint32_t  preview_mode;
+	uint32_t cap_mode = (param>>CAP_MODE_BITS);
+
+	param = param&0xffff;
+	SENSOR_PRINT("%d,%d.",cap_mode,param);
+
+	preview_mode = (param >= SENSOR_MODE_PREVIEW_TWO) ? \
 	                        SENSOR_MODE_PREVIEW_TWO:SENSOR_MODE_PREVIEW_ONE;
 
 	SENSOR_PRINT("HI351: HI351_before_snapshot\n");

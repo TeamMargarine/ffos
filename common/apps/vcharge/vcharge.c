@@ -23,15 +23,46 @@
 
 #define _BUF_SIZE 100
 #define VBPIPE_PATH "/dev/vbpipe3"
+#define CHR_DEV_NAME "/dev/battery_capcity_dev"
 char buf[_BUF_SIZE] = {0};
 int uevent_fd = -1;
+void *charge_record_capacity_thread(void *cookie)
+{
+        unsigned char test=0;
+        int fp0 = open("/data/battery_capcity",O_RDWR | O_CREAT, S_IRUSR|S_IWUSR);
+        if (fp0 == NULL)
+        {
+                return -1;
+        }
+        int fd = open(CHR_DEV_NAME,O_RDWR);
+        if (fd == NULL)
+        {
+                return -1;
+        }
+        read(fp0,&test,1);
+        lseek(fp0,0,SEEK_SET);
+        write(fd,&test,1);
+        while(1)
+        {
+                read(fd,&test,1);
+                write(fp0,&test,1);
+                fsync(fp0);
+                lseek(fp0,0,SEEK_SET);
+		sleep(3);
+        }
+        close(fp0);
+        close(fd);
+
+
+        return 0;
+}
 
 int
 main(int argc, char **argv) {
     int ret = -1;
     int vbpipe_fd = -1;
     int pre_usb_online = -1;
-    int usb_online, ac_online, need_notify, need_start=0;
+    int usb_online, ac_online, need_notify=0, need_start=0;
     int pre_ac_online = -1;
     /* open cmux channel */
     LOGD("start\n");
@@ -44,7 +75,7 @@ main(int argc, char **argv) {
     }
 
 reopen_channel:
-    vbpipe_fd = -1;
+	vbpipe_fd = -1;
     while(vbpipe_fd < 0){
         vbpipe_fd = open(VBPIPE_PATH, O_RDWR);
         if(vbpipe_fd < 0){
@@ -53,7 +84,6 @@ reopen_channel:
         }
     }
     LOGD("open vcharge channel success vbpipe_fd=%d\n",vbpipe_fd);
-
     pre_usb_online = read_usb();
     pre_ac_online = read_ac();
     LOGD("inital status usb: %d ac: %d\n", pre_usb_online, pre_ac_online);
@@ -71,7 +101,12 @@ reopen_channel:
         LOGE("update adc calibration failed\n");
         goto err_handle;
     }
-
+        int ret_thread = 0;
+        pthread_t t_1;
+	ret_thread = pthread_create(&t_1, NULL, charge_record_capacity_thread, NULL);
+        if(ret_thread){
+                return -1;
+        }
     while(1){
         ret = uevent_next_event(buf, _BUF_SIZE);
         if(ret <= 0)
@@ -176,14 +211,14 @@ int uevent_next_event(char* buffer, int buffer_length)
 int read_usb(void)
 {
     int fd = -1;
-    char buf[2];
+    char buf[3];
     int ret = -1;
     fd = open("/sys/class/power_supply/usb/online", O_RDONLY);
     if(fd < 0){
         LOGE("%s: usb online open error\n", __func__);
         return 0;
     }
-    ret = read(fd, buf, 2);
+    ret = read(fd, buf, 2U);
     if(ret >= 0)
       buf[ret] = '\0';
     close(fd);
@@ -201,14 +236,14 @@ int read_usb(void)
 int read_ac(void)
 {
     int fd = -1;
-    char buf[2];
+    char buf[3];
     int ret = -1;
     fd = open("/sys/class/power_supply/ac/online", O_RDONLY);
     if(fd < 0){
         LOGE("%s: ac online open error\n", __func__);
         return 0;
     }
-    ret = read(fd, buf, 2);
+    ret = read(fd, buf, 2U);
     if(ret >= 0)
       buf[ret] = '\0';
     close(fd);

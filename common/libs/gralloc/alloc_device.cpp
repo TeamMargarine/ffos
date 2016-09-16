@@ -45,7 +45,9 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
-#include <linux/ion.h>
+//#include <linux/ion.h>
+#include "usr/include/linux/ion.h"
+#include "ion_sprd.h"
 #define ION_DEVICE "/dev/ion"
 
 
@@ -103,29 +105,22 @@ static int __ump_alloc_should_fail()
 
 int open_ion_device(private_module_t* m)
 {
-	int res=-1;
-	pthread_mutex_lock(&m->fd_lock);
+	if(m->mIonFd<0)
+		m->mIonFd = open(ION_DEVICE, O_RDONLY|O_SYNC);
 	if(m->mIonFd < 0)
 	{
-		m->mIonFd = open(ION_DEVICE, O_RDONLY|O_SYNC);
-	}
-	if(m->mIonFd >= 0)
-	{
-		res=0;
-	}
-	pthread_mutex_unlock(&m->fd_lock);
-	return res;
+       	return -1;
+       }else
+       {
+       	return 0;
+       }
 }
 
 void close_ion_device(private_module_t* m)
 {
-	pthread_mutex_lock(&m->fd_lock);
-	if(m->mIonFd >= 0)
-	{
-		close(m->mIonFd);
-	}
-	m->mIonFd = -1;
-	pthread_mutex_unlock(&m->fd_lock);
+    if(m->mIonFd >= 0)
+        close(m->mIonFd);
+    m->mIonFd = -1;
 }
 
 static int gralloc_alloc_ionbuffer_locked(alloc_device_t* dev, size_t size, int usage, buffer_handle_t* pHandle,  int is_overlay)
@@ -158,15 +153,27 @@ static int gralloc_alloc_ionbuffer_locked(alloc_device_t* dev, size_t size, int 
        struct ion_allocation_data ionAllocData;
        ionAllocData.len = round_up_to_page_size(size);
        ionAllocData.align = PAGE_SIZE;
+#if (ION_DRIVER_VERSION == 1)
+       if (is_overlay) {
+	   	ionAllocData.heap_mask = (1 <<( ION_HEAP_TYPE_CARVEOUT+1));
+       } else {
+       		ionAllocData.heap_mask = ION_HEAP_CARVEOUT_MASK;
+       }
+	ionAllocData.flags = 0;
+#else
        if (is_overlay) {
 	   	ionAllocData.flags = (1 <<( ION_HEAP_TYPE_CARVEOUT+1));
        } else {
        		ionAllocData.flags = ION_HEAP_CARVEOUT_MASK;
-       }
+       }	
+#endif
     	err = ioctl(ion_fd, ION_IOC_ALLOC, &ionAllocData);
     	if(err)
 	{
-		ALOGE("ION_IOC_ALLOC fail");
+		if(is_overlay)
+			ALOGI("overlay is not opened or not enough overlay ion memory, result is:%d" , err);
+		else
+			ALOGE("ION_IOC_ALLOC fail");
 		if(is_cached) close(ion_fd);
 		return -ENOMEM;
     	}
@@ -174,10 +181,10 @@ static int gralloc_alloc_ionbuffer_locked(alloc_device_t* dev, size_t size, int 
     	fd_data.handle = ionAllocData.handle;
        handle_data.handle = ionAllocData.handle;
 
-       err = ioctl(ion_fd, ION_IOC_MAP, &fd_data);
+       err = ioctl(ion_fd, ION_IOC_SHARE, &fd_data);
        if(err)
 	{
-		ALOGE("ION_IOC_MAP fail");
+		ALOGE("ION_IOC_SHARE fail");
 		if(is_cached) close(ion_fd);
 		return -ENOMEM;
        }
@@ -421,6 +428,7 @@ static int gralloc_alloc_framebuffer(alloc_device_t* dev, size_t size, int usage
 
 static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int usage, buffer_handle_t* pHandle, int* pStride)
 {
+	ALOGD("%s w:%d, h:%d, format:%d usage:%d start",__FUNCTION__,w,h,format,usage);
 	if (!pHandle || !pStride)
 	{
 		return -EINVAL;
@@ -477,14 +485,13 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 
 	int preferIon = 0;
 	private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
-#if 0
 	if ((format == HAL_PIXEL_FORMAT_RGBA_8888)
 		&& (((stride == m->info.xres) && (h == m->info.yres)) ||((h == m->info.xres) && (stride == m->info.yres)) )
 		&& !(usage & GRALLOC_USAGE_HW_FB)) {
 			usage |= GRALLOC_USAGE_PRIVATE_0;
 			preferIon = 1;
 	}
-#endif
+
 	int err;
 	if(usage & (GRALLOC_USAGE_PRIVATE_0 | GRALLOC_USAGE_PRIVATE_1))
 	{
@@ -499,18 +506,18 @@ static int alloc_device_alloc(alloc_device_t* dev, int w, int h, int format, int
 				hnd->flags |= private_handle_t::PRIV_FLAGS_NOT_OVERLAY;
 			}
 #ifdef DRM_SPECIAL_PROCESS
-			if (!(usage & GRALLOC_USAGE_PROTECTED)) {
-				hnd->flags |= private_handle_t::PRIV_FLAGS_NOT_OVERLAY;
-			}
+                        if (!(usage & GRALLOC_USAGE_PROTECTED)) {
+                                hnd->flags |= private_handle_t::PRIV_FLAGS_NOT_OVERLAY;
+                        }
 #endif
 			if(preferIon)
 			{
 				m->mIonBufNum++;
-				ALOGI("================allocat  ion memory for rgba xres*yres = %d*%d fd = %d:%d", m->info.xres,  m->info.yres, hnd->fd, m->mIonBufNum);	
+				ALOGI("================allocat  ion memory for rgba xres*yres = %d*%d fd = %d:%d", m->info.xres,  m->info.yres, hnd->fd, m->mIonBufNum);
 			}
 		} else {
 			if(preferIon) {
-				ALOGW("================allocat ion memory for rgba reserved buffer size too small,may allocat normal buffer");
+				ALOGI("================allocat  ion memory for rgba reserved buffer size too small,need to alloc normal buffer");
 				goto AllocNormalBuffer;
 			}
 		}
@@ -530,12 +537,9 @@ AllocNormalBuffer:
 			hnd->width = stride;
 			hnd->height = h;
 		}
-		else
-		{
-			ALOGE("================allocat normal memory failed xres*yres = %d*%d", m->info.xres,  m->info.yres);
-		}
 	}
 
+	ALOGD("%s handle:0x%x end",__FUNCTION__,(unsigned int)*pHandle);
 	if (err < 0)
 	{
 		return err;
@@ -547,6 +551,7 @@ AllocNormalBuffer:
 
 static int alloc_device_free(alloc_device_t* dev, buffer_handle_t handle)
 {
+	ALOGD("%s buffer_handle_t:0x%x start",__FUNCTION__,(unsigned int)handle);
 	if (private_handle_t::validate(handle) < 0)
 	{
 		return -EINVAL;
@@ -621,6 +626,7 @@ static int alloc_device_free(alloc_device_t* dev, buffer_handle_t handle)
 
 	delete hnd;
 
+	ALOGD("%s end",__FUNCTION__);
 	return 0;
 }
 

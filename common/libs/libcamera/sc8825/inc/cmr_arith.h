@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef _CMR_ARITH_H_
 #define _CMR_ARITH_H_
 
@@ -28,8 +27,8 @@ int arithmetic_fd_start(void *data_addr);
 void arithmetic_set_mem(uint32_t phy_addr, uint32_t vir_addr, uint32_t mem_size);
 int arithmetic_hdr_init(uint32_t pic_width, uint32_t pic_height);
 int arithmetic_hdr_deinit(void);
-int arithmetic_hdr(unsigned char *dst_addr,uint32_t width,uint32_t height);
-void arithmetic_hdr_data(unsigned char *addr,uint32_t size,uint32_t cap_cnt);
+int arithmetic_hdrs(struct img_addr *dst_addr,uint32_t width,uint32_t height);
+void arithmetic_hdr_data(struct img_addr *addr,uint32_t y_size,uint32_t uv_size,uint32_t cap_cnt);
 #ifdef __cplusplus
 }
 #endif

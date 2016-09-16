@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2010-2012 ARM Limited. All rights reserved.
- * 
+ *
  * This program is free software and is provided to you under the terms of the GNU General Public License version 2
  * as published by the Free Software Foundation, and any use by you of this program is subject to the terms of such GNU licence.
- * 
+ *
  * A copy of the licence is included with the program, and can also be obtained from Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
@@ -140,10 +140,10 @@ static int os_allocate(void* ctx, ump_dd_mem * descriptor)
 
 		if (is_cached)
 		{
-			new_page = alloc_page(GFP_HIGHUSER | __GFP_ZERO | __GFP_REPEAT | __GFP_NOWARN);
+			new_page = alloc_page(GFP_HIGHUSER | __GFP_ZERO | __GFP_REPEAT | __GFP_NOWARN | __GFP_NO_KSWAPD);
 		} else
 		{
-			new_page = alloc_page(GFP_HIGHUSER | __GFP_ZERO | __GFP_REPEAT | __GFP_NOWARN | __GFP_COLD);
+			new_page = alloc_page(GFP_HIGHUSER | __GFP_ZERO | __GFP_REPEAT | __GFP_NOWARN | __GFP_COLD | __GFP_NO_KSWAPD);
 		}
 		if (NULL == new_page)
 		{
@@ -159,6 +159,15 @@ static int os_allocate(void* ctx, ump_dd_mem * descriptor)
 		{
 			descriptor->block_array[pages_allocated].addr = dma_map_page(NULL, new_page, 0, PAGE_SIZE, DMA_BIDIRECTIONAL );
 			descriptor->block_array[pages_allocated].size = PAGE_SIZE;
+                        //dma_mapping_error(NULL,0x00000000);
+                        if(descriptor->block_array[pages_allocated].addr==0)
+                        {
+                            printk("os_allocate descriptor->block_array[%d]: add=0x%08lx, size=%d, is_cached=%d\n",
+                                    pages_allocated,
+                                    descriptor->block_array[pages_allocated].addr,
+                                    descriptor->block_array[pages_allocated].size,
+                                    is_cached);
+                        }
 		}
 
 		DBG_MSG(5, ("Allocated page 0x%08lx cached: %d\n", descriptor->block_array[pages_allocated].addr, is_cached));

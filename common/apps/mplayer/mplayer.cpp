@@ -111,11 +111,11 @@ int main(int argc, char *argv[])
     mp->start();
     stime = time(NULL);
     // tmv.tv_sec = 0; tmv.tv_usec = 500*1000;
-    while (mp->isPlaying()) {
+    do{
         sleep(1); // select(0, 0, 0, 0, &tmv);
         if (difftime(time(NULL), stime) > seconds_max)
             break;
-    }
+    }while (mp->isPlaying());
     mp->stop();
     mp->disconnect();
 

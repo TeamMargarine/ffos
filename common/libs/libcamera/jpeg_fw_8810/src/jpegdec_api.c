@@ -116,11 +116,19 @@ LOCAL void JPEGDEC_init_fw_param(JPEGDEC_PARAMS_T *jpegdec_params,
 	}
 	else
 	{
+		dec_fw_info_ptr->yuv_0_addr.y_data_ptr = jpegdec_params->target_phy_buf_Y;
+		dec_fw_info_ptr->yuv_0_addr.u_data_ptr = jpegdec_params->target_phy_buf_UV;
+		dec_fw_info_ptr->yuv_0_addr.v_data_ptr = NULL;
+		dec_fw_info_ptr->yuv_1_addr.y_data_ptr = jpegdec_params->pang_phy_buf_Y;
+		dec_fw_info_ptr->yuv_1_addr.u_data_ptr = jpegdec_params->pang_phy_buf_UV;
+
+/*
 		dec_fw_info_ptr->yuv_0_addr.y_data_ptr = jpegdec_params->yuv_phy_buf;
 		dec_fw_info_ptr->yuv_0_addr.u_data_ptr = jpegdec_params->target_phy_buf_UV;
 		dec_fw_info_ptr->yuv_0_addr.v_data_ptr = NULL;
 		dec_fw_info_ptr->yuv_1_addr.y_data_ptr = dec_fw_info_ptr->yuv_0_addr.y_data_ptr;
 		dec_fw_info_ptr->yuv_1_addr.u_data_ptr = dec_fw_info_ptr->yuv_0_addr.u_data_ptr;
+*/
 		dec_fw_info_ptr->yuv_1_addr.v_data_ptr = NULL;
 	}
 
@@ -315,7 +323,28 @@ void JPEGDEC_Handle_BSM_INT(jpegdec_callback callback)
 	SCI_TRACE_LOW("JPEGDEC_Poll_MEA_BSM callback after.\n");	*/	
 }
 
-void poll_ahb_idle(uint32_t time)
+void dbg_print_vsp_reg(void)
+{
+    uint32_t i, regvalue;
+    uint32_t regaddr[] = {  0x20c00000, 0x20c0000c, 0x20c00014, 0x20c00020, 0x20c00024, 0x20c00028, 0x20c0002c,
+                                            0x20c00040, 0x20c00044, 0x20c00048, 0x20c0004c, 0x20c00050, 0x20c00054, 0x20c00058,
+                                            0x20c10400, 0x20c10404, 0x20c10408, 0x20c1040c, 0x20c10410, 0x20c10414, 0x20c10418,
+                                            0x20c1041c, 0x20c10420, 0x20c10424, 0x20c10428, 0x20c10800, 0x20c10870, 0x20c10874,
+                                            0x20c10878, 0x20c1087c, 0x20c10880, 0x20c10884, 0x20c10888, 0x20c11c00, 0x20c11c04, 
+                                            0x20c11c08, 0x20c11c0c, 0x20c11c10, 0x20c11c14, 0x20c11c18, 0x20c11c1c};
+
+    SCI_TRACE_LOW("dbg_print_vsp_reg print start \n");
+    for(i=0; i<sizeof(regaddr)/sizeof(uint32_t); i++)
+    {
+        regvalue = (*(volatile uint32 *)(regaddr[i]-VSP_DCAM_BASE+g_vsp_Vaddr_base));
+
+        SCI_TRACE_LOW("addr=0x%08x, value=0x%08x \n",regaddr[i], regvalue);
+	}
+	SCI_TRACE_LOW("dbg_print_vsp_reg print end \n");
+
+}
+
+static uint32_t  poll_ahb_idle(uint32_t time)
 {
 	uint32_t vsp_time_out_cnt = 0;
 	
@@ -337,20 +366,34 @@ void poll_ahb_idle(uint32_t time)
 		if (vsp_time_out_cnt > time)
 		{
 			SCI_TRACE_LOW("JPEGDEC_Poll_MEA_BSM X, fail 2.\n");
+            dbg_print_vsp_reg();
+
 			return 1;
 		}
 	}
+
+	return 0;
 }
 
 //poll MEA done and BSM done
 
-uint32_t JPEGDEC_Poll_DBK_BSM(uint32_t time, uint32_t buf_len,  jpegdec_callback callback, uint32_t slice_num)
+uint32_t JPEGDEC_Poll_DBK_BSM(uint32_t time,
+                            uint32_t height,
+                            jpegdec_callback callback,
+                            uint32_t slice_num,
+                            uint32_t slice_height)
 {
 	uint32_t value;
 	uint32_t vsp_time_out_cnt = 0;
 	uint32_t buf_id = 1;
+	uint32_t decode_status = 0;
+	uint32_t y_phy_addr = 0;
+	uint32_t uv_phy_addr = 0;
+	uint32_t last_slice_height = (height%slice_height) ? (height-height/slice_height*slice_height) : 0;
+	JPEG_CODEC_T *jpeg_fw_codec = Get_JPEGDecCodec();
 
-	SCI_TRACE_LOW("JPEGDEC_Poll_DBK_BSM S, slice_num=%d.\n",slice_num);
+
+	SCI_TRACE_LOW("JPEGDEC_Poll_DBK_BSM S, slice_num=%d,last_slice_height=%d.\n",slice_num,last_slice_height);
 			
 	while (1)
 	{		
@@ -362,26 +405,60 @@ uint32_t JPEGDEC_Poll_DBK_BSM(uint32_t time, uint32_t buf_len,  jpegdec_callback
 			if (slice_num)
 			{
 				SCI_TRACE_LOW("JPEGDEC_Poll_DBK_BSM: sencod start , buf_id %d.", buf_id);
-				//*((volatile uint32_t *)0x20c11c10 ) |= (1<<1); //enable dbk buffer 1
-				if(NULL != callback)
+				decode_status =  poll_ahb_idle(time);
+				/* clear interrupt */
+				if(0 ==decode_status )
 				{
-					poll_ahb_idle(time);
-					callback(0,0,0);
-				}
-
 				/* clear interrupt */
 				(*(volatile uint32 *)(0x20c11c10-VSP_DCAM_BASE+g_vsp_Vaddr_base)) |= (1<<2);
 				(*(volatile uint32 *)(0x20c00028-VSP_DCAM_BASE+g_vsp_Vaddr_base)) |= (1<<9);
 
 				(*(volatile uint32 *)(0x20c11c10-VSP_DCAM_BASE+g_vsp_Vaddr_base)) |= (1<<buf_id);
+					if(NULL != callback)
+					{
+						if(1 == buf_id)
+						{
+							y_phy_addr = (uint32_t)jpeg_fw_codec->YUV_Info_0.y_data_ptr;
+							uv_phy_addr = (uint32_t)jpeg_fw_codec->YUV_Info_0.u_data_ptr;
+						}
+						else
+						{
+							y_phy_addr = (uint32_t)jpeg_fw_codec->YUV_Info_1.y_data_ptr;
+							uv_phy_addr = (uint32_t)jpeg_fw_codec->YUV_Info_1.u_data_ptr;
+						}
+
+						callback(y_phy_addr,uv_phy_addr,slice_height);
+					}
+				}
+				else
+				{
+					return 1; //error;
+				}
 				//JPEG_HWSet_DBK_Buf_WriteOnly(buf_id);
 				buf_id = !buf_id;
 			}else
 			{
-				poll_ahb_idle(time);
+				decode_status = poll_ahb_idle(time);
+				if(1 == decode_status )
+				{
+					return 1;
+				}
 				if(NULL != callback)
 				{
-					callback(1,0,0);
+					if(1 == buf_id)
+					{
+						y_phy_addr = (uint32_t)jpeg_fw_codec->YUV_Info_0.y_data_ptr;
+						uv_phy_addr = (uint32_t)jpeg_fw_codec->YUV_Info_0.u_data_ptr;
+					}
+					else
+					{
+						y_phy_addr = (uint32_t)jpeg_fw_codec->YUV_Info_1.y_data_ptr;
+						uv_phy_addr = (uint32_t)jpeg_fw_codec->YUV_Info_1.u_data_ptr;
+					}
+					if(last_slice_height)
+						callback(y_phy_addr,uv_phy_addr,last_slice_height);
+					else
+						callback(y_phy_addr,uv_phy_addr,slice_height);
 				}
 				return 0;
 			}
@@ -389,12 +466,14 @@ uint32_t JPEGDEC_Poll_DBK_BSM(uint32_t time, uint32_t buf_len,  jpegdec_callback
 		else if(value & 0x3000)//for vsp error
 		{
 			SCI_TRACE_LOW("JPEGDEC_Poll_DBK_BSM:vsp error 0x%x.",value);
+            dbg_print_vsp_reg();
 			return 1;
 		}
 		
 		if (vsp_time_out_cnt > time)
 		{
 			SCI_TRACE_LOW("JPEGDEC_Poll_MEA_BSM X, fail 1.\n");
+            dbg_print_vsp_reg();
 			return 1;
 		}
 		vsp_time_out_cnt++;
@@ -520,7 +599,7 @@ int JPEGDEC_decode_one_pic(JPEGDEC_PARAMS_T *jpegdec_params,  jpegdec_callback c
 	}	
 	SCI_TRACE_LOW("JPEGDEC_decode_one_pic --2 ");   
        ioctl(vsp_fd,VSP_ENABLE,NULL);
-	ioctl(vsp_fd,VSP_RESET,NULL);	
+	//ioctl(vsp_fd,VSP_RESET,NULL);	
 	SCI_TRACE_LOW("JPEGDEC_decode_one_pic --3 ");   	
     	VSP_SetVirtualBaseAddr((uint32)vsp_addr);
 	SCI_TRACE_LOW("JPEGDEC_decode_one_pic --4 ");   	
@@ -534,7 +613,7 @@ int JPEGDEC_decode_one_pic(JPEGDEC_PARAMS_T *jpegdec_params,  jpegdec_callback c
 	}	
 	
 	//poll the end of jpeg decoder
-	if( JPEG_SUCCESS != JPEGDEC_Poll_DBK_BSM(0xFFF, jpegdec_params->stream_buf_len,callback, slice_num))
+	if( JPEG_SUCCESS != JPEGDEC_Poll_DBK_BSM(0xFFF, jpegdec_params->height,callback, slice_num,slice_height))
 	{
 			
 		SCI_TRACE_LOW("JPEGDEC fail to JPEGDEC decode.");

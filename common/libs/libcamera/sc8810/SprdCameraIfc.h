@@ -1,35 +1,32 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+* hardware/sprd/hsdroid/libcamera/sprdcameraIfc.h
+ * Dcam HAL based on sc8800g2
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Copyright (C) 2011 Spreadtrum 
+ * 
+ * Author: Xiaozhe wang <xiaozhe.wang@spreadtrum.com>
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
-
 #ifndef CAMERA_IFC_H
 #define CAMERA_IFC_H
 
+#include "../arithmetic/sc8810/inc/FaceSolid.h"
 #define FEATURE_CAMERA_V7
 #define FEATURE_NATIVELINUX
 #define FEATURE_CAMERA_ENCODE_PROPERTIES
 
-#if defined(CONFIG_CAMERA_SUPPORT_130W)
-    #define JPEG_ENC_HW_PMEM (768 * 1024) //0x0100000 // 130W
-#elif defined(CONFIG_CAMERA_SUPPORT_50W)
-    #define JPEG_ENC_HW_PMEM (256 * 1024) //0x0100000 // 50W
-#else
-    #define JPEG_ENC_HW_PMEM (1024 * 1024) //0x0100000 // 2M
-#endif
-
+#define JPEG_ENC_HW_PMEM (1024 * 1024) //0x0100000 // 2M
 #define JPEG_ENC_HW_BUF_NUM 2
+#define FACE_DETECT_NUM		5
+#define FACE_SMILE_LIMIT    10
 
 typedef enum {
     QDSP_MODULE_KERNEL,
@@ -199,6 +196,8 @@ typedef struct
 #endif
     uint32_t buf_id;
     int64_t timestamp;
+	uint32_t face_num;
+	morpho_FaceRect *face_ptr;
 } camera_frame_type;
 
 typedef enum
@@ -259,6 +258,7 @@ typedef enum
     CAMERA_EXIT_CB_BUFFER,    /* A buffer is returned         */
     CAMERA_EVT_CB_SNAPSHOT_DONE,/*  Snapshot updated               */
     CAMERA_EVT_CB_SNAPSHOT_JPEG_DONE,
+    CAMERA_EVT_CB_FD,
     CAMERA_CB_MAX
 } camera_cb_type;
 

@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef _CMR_COMMON_H_
 #define _CMR_COMMON_H_
 
@@ -47,7 +46,7 @@ extern "C"
 #define CMR_EVT_STOP                       (1 << 22)
 #define CMR_EVT_AF                         (1 << 23)
 #define CMR_SLICE_HEIGHT                   128
-#define CMR_JPEG_COMPRESS_FACTOR           1
+#define CMR_JPEG_COMPRESS_FACTOR           2
 #define CMR_JPEG_SZIE(w,h)                 (uint32_t)((w)*(h)/CMR_JPEG_COMPRESS_FACTOR)
 #define CMR_EVT_MASK_BITS                  (uint32_t)(CMR_EVT_V4L2_BASE | CMR_EVT_CVT_BASE | \
 					CMR_EVT_ISP_BASE | CMR_EVT_SENSOR_BASE | \
@@ -91,7 +90,7 @@ enum img_data_type_e {
 
 enum img_skip_mode {
 	IMG_SKIP_HW = 0,
-	IMG_SKIP_SW
+	IMG_SKIP_SW				
 };
 
 enum restart_mode {

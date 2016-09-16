@@ -15,6 +15,7 @@ extern "C" {
 #include <utils/Log.h>
 #define ENG_AT_LOG  ALOGD
 
+//#define ENG_TRACING
 
 #ifdef ENG_TRACING
 #define ENG_LOG  ALOGD
@@ -22,9 +23,6 @@ extern "C" {
 //#define ENG_LOG  ALOGD
 #define  ENG_LOG(format, ...)
 #endif
-
-
-#define ENG_SOCKET_PORT  65000
 
 #define ENG_APPCLIENT     "appclient"
 #define ENG_PCCLIENT       "pcclient"
@@ -88,8 +86,28 @@ typedef enum{
 }eut_modules;
 
 struct eut_cmd{
-	char *index;
+	int index;
 	char *name;
+};
+
+typedef enum{
+	CP_TD = 0,
+	CP_WCDMA ,
+}eng_cp_type;
+
+typedef enum{
+	CONNECT_UART  = 0,
+	CONNECT_USB,
+	CONNECT_PIPE,
+}eng_connect_type;
+
+struct eng_param{
+	int califlag;
+	int engtest;
+	int cp_type;                /*td: CP_TD; wcdma:CP_WCDMA*/
+	int connect_type;     /*usb:CONNECT_USB ; uart:CONNECT_UART*/
+	int nativeflag;         /*0: vlx, CP directly communicates with PC tool
+                                *1: native, AP directly communicates with PC tool  */
 };
 
 typedef  pthread_t                 eng_thread_t;

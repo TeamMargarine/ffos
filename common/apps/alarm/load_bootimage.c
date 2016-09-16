@@ -17,6 +17,7 @@
 extern int load_black_background(void);
 extern int get_value(char *file);
 extern struct boot_status gs_boot_state;
+extern int time_dm;
 static gr_surface gProgressBarIndeterminate[PROGRESSBAR_INDETERMINATE_STATES];
 
 static gr_surface gLowPower[3];
@@ -95,9 +96,13 @@ void print_time_num(int time_icon_y)
 
 	time(&timep);
 	time_cur = localtime(&timep);
-
-	hour_dec = time_cur->tm_hour/10;
-	hour_unit = time_cur->tm_hour%10;
+        if((time_dm == 12)&&(time_cur->tm_hour-12 >=0)){
+	    hour_dec = (time_cur->tm_hour-12)/10;
+	    hour_unit = (time_cur->tm_hour-12)%10;
+        }else{
+	    hour_dec = time_cur->tm_hour/10;
+	    hour_unit = time_cur->tm_hour%10;
+        }
 	mini_dec = time_cur->tm_min/10;
 	mini_unit = time_cur->tm_min%10;
 

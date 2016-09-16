@@ -1,19 +1,15 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2012 Spreadtrum Communications Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
-
 #ifndef _SENSOR_DRV_U_H_
 #define _SENSOR_DRV_U_H_
 //#include <linux/i2c.h>
@@ -68,6 +64,7 @@
 
 
 #define SENSOR_IDENTIFY_CODE_COUNT			0x02
+#define CAP_MODE_BITS                       16
 
 /* bit define */
 #define S_BIT_0               0x00000001
@@ -488,6 +485,7 @@ typedef struct sensor_ioctl_func_tab_tag {
 	uint32_t(*set_preview_mode) (uint32_t param);
 
 	uint32_t(*set_image_effect) (uint32_t param);
+	//low 16bits is resolution table index,hight 16bits is cap mode containing normal and HDR.
 	uint32_t(*before_snapshort) (uint32_t param);
 	uint32_t(*after_snapshort) (uint32_t param);
 	uint32_t(*flash) (uint32_t param);
@@ -517,6 +515,12 @@ typedef struct sensor_ioctl_func_tab_tag {
 	uint32_t(*stream_on) (uint32_t param);
 	uint32_t(*stream_off) (uint32_t param);
 } SENSOR_IOCTL_FUNC_TAB_T, *SENSOR_IOCTL_FUNC_TAB_T_PTR;
+
+typedef struct sensor_i2c_tag {
+	uint8_t  *i2c_data;
+	uint16_t i2c_count;
+	uint16_t slave_addr;
+} SENSOR_I2C_T, *SENSOR_I2C_T_PTR;
 
 typedef struct sensor_reg_tag {
 	uint16_t reg_addr;
@@ -760,5 +764,6 @@ int Sensor_SetMark(uint8_t *buf);
 int Sensor_GetMark(uint8_t *buf,uint8_t *is_saved_ptr);
 int _Sensor_Device_WriteRegTab(SENSOR_REG_TAB_PTR reg_tab);
 int Sensor_AutoFocusInit(void);
+int Sensor_WriteI2C(uint16_t slave_addr, uint8_t *cmd, uint16_t cmd_length);
 
 #endif

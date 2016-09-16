@@ -402,12 +402,12 @@ static _mali_osk_errcode_t dump_mmu_page_table(struct mali_page_directory *paged
 	if (NULL != pagedir->page_directory_mapped)
 	{
 		int i;
-
+		const int num_page_table_entries = sizeof(pagedir->page_entries_mapped) / sizeof(pagedir->page_entries_mapped[0]);
 		MALI_CHECK_NO_ERROR(
 			dump_page(pagedir->page_directory_mapped, pagedir->page_directory, info)
 			);
 
-		for (i = 0; i < 1024; i++)
+		for (i = 0; i < num_page_table_entries; i++)
 		{
 			if (NULL != pagedir->page_entries_mapped[i])
 			{

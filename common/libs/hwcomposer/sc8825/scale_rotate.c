@@ -20,7 +20,6 @@
 #include "scale_rotate.h"
 #include "img_scale_u.h"
 #include "cmr_common.h"
-#include <semaphore.h>
 #include "graphics.h"
 #define HWCOMPOSER_EXIT_IF_ERR(n)                      \
 	do {                                                                 \
@@ -30,8 +29,6 @@
 		}                                                    \
 	} while(0)
 
-static sem_t sem_scale_rot;
-static int is_scaling_init = 0;
 
 static ROT_DATA_FORMAT_E rotation_data_format_hw2kernel(HW_ROTATION_DATA_FORMAT_E data_format)
 {
@@ -260,105 +257,96 @@ int camera_scaling(HW_SCALE_DATA_FORMAT_E output_fmt,
 	uint32_t input_yaddr, uint32_t intput_uvaddr,
 	struct sprd_rect *trim_rect, HW_ROTATION_MODE_E rotation, uint32_t tmp_addr)
 {
-	if ( 0 == is_scaling_init) {
-		sem_init(&sem_scale_rot, 0, 1);
-		is_scaling_init = 1;
-	}
+	int ret = 0;
+	struct img_frm src_img, dst_img;
+	struct img_rect src_rect;
+	enum scle_mode scale_mode = SCALE_MODE_NORMAL;
+	struct scale_frame scale_frm;
 
-	sem_wait(&sem_scale_rot);
+	src_img.fmt = (uint32_t)input_fmt;
+	src_img.size.width = input_width;
+	src_img.size.height = input_height;
+	src_img.addr_phy.addr_y =  input_yaddr;
+	src_img.addr_phy.addr_u =  intput_uvaddr;
+	src_img.addr_phy.addr_v = intput_uvaddr;
+	src_img.data_end.y_endian = 1;
+	src_img.data_end.uv_endian = input_uv_endian;
+
+	src_rect.start_x = trim_rect->x;
+	src_rect.start_y = trim_rect->y;
+	src_rect.width = trim_rect->w;
+	src_rect.height = trim_rect->h;
+
+	dst_img.fmt = (uint32_t)output_fmt;
+	dst_img.size.width = output_width;
+	dst_img.size.height = output_height;
+	if(HW_ROTATION_0 == rotation){
+		dst_img.addr_phy.addr_y =  output_yaddr;
+		dst_img.addr_phy.addr_u =  output_uvaddr;
+		dst_img.addr_phy.addr_v = output_uvaddr;
+	}else
 	{
-		int ret = 0;
-		struct img_frm src_img, dst_img;
-		struct img_rect src_rect;
-		enum scle_mode scale_mode = SCALE_MODE_NORMAL;
-		struct scale_frame scale_frm;
-
-		src_img.fmt = (uint32_t)input_fmt;
-		src_img.size.width = input_width;
-		src_img.size.height = input_height;
-		src_img.addr_phy.addr_y =  input_yaddr;
-		src_img.addr_phy.addr_u =  intput_uvaddr;
-		src_img.addr_phy.addr_v = intput_uvaddr;
-		src_img.data_end.y_endian = 1;
-		src_img.data_end.uv_endian = input_uv_endian;
-
-		src_rect.start_x = trim_rect->x;
-		src_rect.start_y = trim_rect->y;
-		src_rect.width = trim_rect->w;
-		src_rect.height = trim_rect->h;
-
-		dst_img.fmt = (uint32_t)output_fmt;
-		dst_img.size.width = output_width;
-		dst_img.size.height = output_height;
-		if(HW_ROTATION_0 == rotation){
-			dst_img.addr_phy.addr_y =  output_yaddr;
-			dst_img.addr_phy.addr_u =  output_uvaddr;
-			dst_img.addr_phy.addr_v = output_uvaddr;
-		}else
-		{
-			dst_img.addr_phy.addr_y =  tmp_addr;
-			dst_img.addr_phy.addr_u =  dst_img.addr_phy.addr_y + dst_img.size.width * dst_img.size.height ;
-			dst_img.addr_phy.addr_v = dst_img.addr_phy.addr_u;
-		}
-		dst_img.data_end.y_endian = 1;
-		dst_img.data_end.uv_endian = 1;
-		int fd = open("/dev/sprd_scale", O_RDONLY);
-		if(fd < 0)
-		{
-			ALOGE("error to open dev sprd_scale");
-			goto exit;
-		}
-		ret = ioctl(fd, SCALE_IO_INPUT_SIZE, &src_img.size);
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_INPUT_RECT, &src_rect);
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_INPUT_FORMAT, &src_img.fmt );
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_INPUT_ENDIAN, &src_img.data_end);
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_INPUT_ADDR, &src_img.addr_phy);
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_OUTPUT_SIZE, &dst_img.size);
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_OUTPUT_FORMAT, &dst_img.fmt);
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_OUTPUT_ENDIAN, &dst_img.data_end);
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_OUTPUT_ADDR, &dst_img.addr_phy);
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_SCALE_MODE, &scale_mode);
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_START, NULL);
-		HWCOMPOSER_EXIT_IF_ERR(ret);
-
-		ret = ioctl(fd, SCALE_IO_IS_DONE, &scale_frm);
-
-		exit:
-		if(fd > 0)
-		{
-			close(fd);
-		}
-		if (ret) {
-			ALOGE("camera_scaling fail. Line:%d", __LINE__);
-			ret = -1;
-		}else{
-			ret = 0;
-		}
-
-		sem_post(&sem_scale_rot);
-
-		return ret;
+		dst_img.addr_phy.addr_y =  tmp_addr;
+		dst_img.addr_phy.addr_u =  dst_img.addr_phy.addr_y + dst_img.size.width * dst_img.size.height ;
+		dst_img.addr_phy.addr_v = dst_img.addr_phy.addr_u;
 	}
+	dst_img.data_end.y_endian = 1;
+	dst_img.data_end.uv_endian = 1;
+	int fd = open("/dev/sprd_scale", O_RDONLY);
+	if(fd < 0)
+	{
+		ALOGE("error to open dev sprd_scale");
+		goto exit;
+	}
+	ret = ioctl(fd, SCALE_IO_INPUT_SIZE, &src_img.size);
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_INPUT_RECT, &src_rect);
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_INPUT_FORMAT, &src_img.fmt );
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_INPUT_ENDIAN, &src_img.data_end);
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_INPUT_ADDR, &src_img.addr_phy);
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_OUTPUT_SIZE, &dst_img.size);
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_OUTPUT_FORMAT, &dst_img.fmt);
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_OUTPUT_ENDIAN, &dst_img.data_end);
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_OUTPUT_ADDR, &dst_img.addr_phy);
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_SCALE_MODE, &scale_mode);
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_START, NULL);
+	HWCOMPOSER_EXIT_IF_ERR(ret);
+
+	ret = ioctl(fd, SCALE_IO_IS_DONE, &scale_frm);
+
+	exit:
+	if(fd >= 0)
+	{
+		ioctl(fd, SCALE_IO_STOP, &scale_frm);
+		close(fd);
+	}
+	if (ret) {
+		ALOGE("camera_scaling fail. Line:%d", __LINE__);
+		ret = -1;
+	}else{
+		ret = 0;
+	}
+
+	return ret;
 }
 
 int do_scaling_and_rotaion(HW_SCALE_DATA_FORMAT_E output_fmt,
@@ -414,6 +402,7 @@ int transform_layer(uint32_t srcPhy, uint32_t srcVirt, uint32_t srcFormat, uint3
 		break;
 	case HAL_PIXEL_FORMAT_YV12:
 		input_format = HW_SCALE_DATA_YUV420_3FRAME;
+		break;
 	default:
 		return -1;
 	}

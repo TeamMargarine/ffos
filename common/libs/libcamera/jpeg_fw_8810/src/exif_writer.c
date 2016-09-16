@@ -2116,9 +2116,9 @@ LOCAL JPEG_RET_E Jpeg_WriteExifIFD(JPEG_WRITE_STREAM_CONTEXT_T *context_ptr,
     uint32      thumbnail_ifd_offset= 0;
     JPEG_RET_E  ret                 = JPEG_SUCCESS;
 
-    EXIF_PRI_DATA_STRUCT_T  *data_struct_ptr    = primary_ptr->data_struct_ptr;
-    EXIF_PRI_DATA_CHAR_T    *data_char_ptr      = primary_ptr->data_char_ptr;
-    EXIF_PRI_DESC_T         *img_desc_ptr       = primary_ptr->img_desc_ptr;
+    EXIF_PRI_DATA_STRUCT_T  *data_struct_ptr;
+    EXIF_PRI_DATA_CHAR_T    *data_char_ptr;
+    EXIF_PRI_DESC_T         *img_desc_ptr;
     EXIF_LONG_T thumbnail_offset = 0;
     EXIF_LONG_T thumbnail_size = 0;
     EXIF_LONG_T offset = 0;
@@ -2127,7 +2127,9 @@ LOCAL JPEG_RET_E Jpeg_WriteExifIFD(JPEG_WRITE_STREAM_CONTEXT_T *context_ptr,
     {
         return JPEG_FAILED;
     }
-	
+    data_struct_ptr = primary_ptr->data_struct_ptr;
+    data_char_ptr = primary_ptr->data_char_ptr;
+    img_desc_ptr = primary_ptr->img_desc_ptr;
     memset(&ifd_info, 0, sizeof(IFD_INFO_T));
 
     //write the max number of the entries temporarily and memorize the location

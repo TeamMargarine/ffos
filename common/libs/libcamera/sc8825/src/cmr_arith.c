@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include <stdlib.h>
 #include <fcntl.h>              /* low-level i/o */
 #include <sys/stat.h>
@@ -81,6 +80,7 @@ void *arithmetic_fd_thread_proc(void *data)
 	unsigned char       *p_format = (unsigned char*)IMAGE_FORMAT;
 	camera_frame_type   frame_type;
 	int                 fd_exit_flag = 0;
+	struct camera_context  *cxt = camera_get_cxt();
 
 	while (1) {
 		ret = cmr_msg_get(s_arith_cxt->fd_msg_que_handle, &message);
@@ -120,10 +120,12 @@ void *arithmetic_fd_thread_proc(void *data)
 					CMR_LOGI("face num %d,smile_level %d.",k,face_rect_ptr->smile_level);
 					face_rect_ptr++;
 				}
-				camera_call_cb(CAMERA_EVT_CB_FD,
-							camera_get_client_data(),
-							CAMERA_FUNC_START_PREVIEW,
-							(uint32_t)&frame_type);
+				if (cxt->arithmetic_cxt.fd_flag) {
+					camera_call_cb(CAMERA_EVT_CB_FD,
+								camera_get_client_data(),
+								CAMERA_FUNC_START_PREVIEW,
+								(uint32_t)&frame_type);
+				}
 			}
 			s_arith_cxt->fd_busy = 0;
 			pthread_mutex_unlock(&s_arith_cxt->fd_lock);
@@ -231,11 +233,6 @@ int arithmetic_fd_start(void *data_addr)
 
 	CMR_LOGI("0x%x.",(uint32_t)s_arith_cxt->addr);
 
-	pthread_mutex_lock(&s_arith_cxt->fd_lock);
-	if (NULL == s_arith_cxt->addr) {		
-		ret = ARITH_NO_MEM;
-	}
-	pthread_mutex_unlock(&s_arith_cxt->fd_lock);
 	CMR_LOGI("%d,%d.",ret,s_arith_cxt->fd_busy);
 	if (!ret && (1 != s_arith_cxt->fd_busy)) {
 		message.msg_type = ARITHMETIC_EVT_FD_START;
@@ -346,10 +343,10 @@ static void save_hdrdata(void *addr,uint32_t width,uint32_t height)
 		CMR_LOGE("can not create savedata");
 	}
 }
-int arithmetic_hdr(unsigned char *dst_addr,uint32_t width,uint32_t height)
+int arithmetic_hdr(struct img_addr *dst_addr,uint32_t width,uint32_t height)
 {
 	int           ret = ARITH_SUCCESS;
-	uint32_t      size = width*height*3/2;
+	uint32_t      size = width*height;
 	unsigned char *temp_addr0 = PNULL;
 	unsigned char *temp_addr1 = PNULL;
 	unsigned char *temp_addr2 = PNULL;
@@ -372,7 +369,8 @@ int arithmetic_hdr(unsigned char *dst_addr,uint32_t width,uint32_t height)
 			CMR_LOGE("can't handle hdr.");
 			ret = ARITH_FAIL;
 	}
-	memcpy(dst_addr,temp_addr0,width*height*3/2);
+	memcpy((void *)dst_addr->addr_y,(void *)temp_addr0,size);
+	memcpy((void *)dst_addr->addr_u,(void *)(temp_addr0+size),size/2);
 /*	save_hdrdata(dst_addr,width,height);*/
 	pthread_mutex_unlock(&s_arith_cxt->hdr_lock);
 	if (ARITH_SUCCESS == ret) {
@@ -381,9 +379,11 @@ int arithmetic_hdr(unsigned char *dst_addr,uint32_t width,uint32_t height)
 	return ret;
 }
 
-void arithmetic_hdr_data(unsigned char *addr,uint32_t size,uint32_t cap_cnt)
+void arithmetic_hdr_data(struct img_addr *addr,uint32_t y_size,uint32_t uv_size,uint32_t cap_cnt)
 {
-	CMR_LOGI("0x%x,%d,%d.",(uint32_t)addr,size,cap_cnt);
+	unsigned char *uv_addr = PNULL;
+
+	CMR_LOGI("0x%x,%d,%d.",(uint32_t)addr,y_size,cap_cnt);
 	if (cap_cnt > HDR_CAP_NUM) {
 		CMR_LOGE("cap cnt error,%d.",cap_cnt);
 		return;
@@ -394,10 +394,12 @@ void arithmetic_hdr_data(unsigned char *addr,uint32_t size,uint32_t cap_cnt)
 		return;
 	}
 
-	if (s_hdr_cxt->mem_size >= size) {
-		memcpy(s_hdr_cxt->addr[cap_cnt-1],addr,size);
+	if (s_hdr_cxt->mem_size >= (y_size+uv_size)) {
+		memcpy((void *)s_hdr_cxt->addr[cap_cnt-1],(void *)addr->addr_y,y_size);
+		uv_addr = s_hdr_cxt->addr[cap_cnt-1]+y_size;
+		memcpy((void *)uv_addr,(void *)addr->addr_u,uv_size);
 	} else {
-		CMR_LOGE("mem size:0x%x,data size:0x%x.",s_hdr_cxt->mem_size,size);
+		CMR_LOGE("mem size:0x%x,data size:0x%x.",s_hdr_cxt->mem_size,y_size);
 	}
 	pthread_mutex_unlock(&s_arith_cxt->hdr_lock);
 }

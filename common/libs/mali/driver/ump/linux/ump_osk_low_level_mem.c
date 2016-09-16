@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2010-2012 ARM Limited. All rights reserved.
- * 
+ *
  * This program is free software and is provided to you under the terms of the GNU General Public License version 2
  * as published by the Free Software Foundation, and any use by you of this program is subject to the terms of such GNU licence.
- * 
+ *
  * A copy of the licence is included with the program, and can also be obtained from Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
@@ -206,6 +206,14 @@ _mali_osk_errcode_t _ump_osk_mem_mapregion_map( ump_memory_allocation * descript
 		        (unsigned long)*phys_addr,
 		        size,
 		        (unsigned int)vma->vm_page_prot, vma->vm_flags, retval));
+                if((unsigned long)*phys_addr==0)
+                    printk("Mapping virtual to physical memory. ID: %u,vma:0x%08lx, v_addr:0x%08lx, phy_addr:0x%08lx, %lu,0x%x,0x%x,0x%x\n",
+                            ump_dd_secure_id_get(descriptor->handle),
+                            (unsigned long)vma,
+                            (unsigned long)(vma->vm_start + offset),
+                            (unsigned long)*phys_addr,
+                            size,
+                            (unsigned int)vma->vm_page_prot, vma->vm_flags, retval);
 
 	return retval;
 }

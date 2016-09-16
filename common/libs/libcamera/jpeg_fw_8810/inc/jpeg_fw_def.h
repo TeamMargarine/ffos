@@ -150,6 +150,14 @@ typedef struct app1_t{
 	JINF_EXIF_INFO_T *dc_exif_info_ptr;
 }APP1_T;
 
+typedef struct enc_temp_buf_para_tag
+{
+	uint32 *ping_y_virt_addr;
+	uint32 *ping_uv_virt_addr;
+	uint32 *pang_y_virt_addr;
+	uint32 *pang_uv_virt_addr;
+} JPEG_ENC_TEMP_BUF_PARA_T;
+
 ///////////////////////////////////////////////////////////////////////////
 //								Common									///
 ///////////////////////////////////////////////////////////////////////////

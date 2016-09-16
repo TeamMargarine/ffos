@@ -23,36 +23,44 @@ ifeq ($(strip $(USE_SPRD_HWCOMPOSER)),true)
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_SHARED_LIBRARIES := liblog libEGL libbinder libutils libcutils libUMP libGLESv1_CM libhardware libui
 LOCAL_SRC_FILES := hwcomposer.cpp \
+		   vsync/vsync.cpp \
                    dump_bmp.cpp
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/../gralloc \
 	$(LOCAL_PATH)/../mali/src/ump/include \
+	$(LOCAL_PATH)/vsync \
+	$(LOCAL_PATH)/android \
 	$(TARGET_OUT_INTERMEDIATES)/KERNEL/usr/include/video \
+        $(TOP)/frameworks/native/include/utils \
 	$(TOP)/system/core/include/system
 LOCAL_MODULE := hwcomposer.$(TARGET_BOARD_PLATFORM)
 LOCAL_CFLAGS:= -DLOG_TAG=\"SPRDhwcomposer\"
-LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DEGL_EGLEXT_PROTOTYPES
+LOCAL_CFLAGS += -D_USE_SPRD_HWCOMPOSER -DGL_GLEXT_PROTOTYPES -DEGL_EGLEXT_PROTOTYPES
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc8825)
 	LOCAL_CFLAGS += -DSCAL_ROT_TMP_BUF
 
 	LOCAL_C_INCLUDES += $(LOCAL_PATH)/../libcamera/sc8825/inc
 
 	LOCAL_SRC_FILES += sc8825/scale_rotate.c
-
 	LOCAL_CFLAGS += -D_PROC_OSD_WITH_THREAD
 
 	LOCAL_CFLAGS += -D_DMA_COPY_OSD_LAYER
 
 	LOCAL_CFLAGS += -D_ALLOC_OSD_BUF
-	LOCAL_CFLAGS += -D_SUPPORT_SYNC_DISP
 endif
 
 ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc8810)
 	LOCAL_CFLAGS += -DSCAL_ROT_TMP_BUF
-
 	LOCAL_SRC_FILES += sc8810/scale_rotate.c
-
 	LOCAL_CFLAGS += -D_SUPPORT_SYNC_DISP
+	LOCAL_CFLAGS += -D_VSYNC_USE_SOFT_TIMER
+endif
+
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc7710)
+	LOCAL_CFLAGS += -DSCAL_ROT_TMP_BUF
+	LOCAL_SRC_FILES += sc8810/scale_rotate.c
+	LOCAL_CFLAGS += -D_SUPPORT_SYNC_DISP
+	LOCAL_CFLAGS += -D_VSYNC_USE_SOFT_TIMER
 endif
 
 ifeq ($(strip $(USE_GPU_PROCESS_VIDEO)) , true)
@@ -66,16 +74,25 @@ endif
 else #android hwcomposer
 
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
-LOCAL_SHARED_LIBRARIES := liblog libEGL libcutils
-LOCAL_SRC_FILES := android/hwcomposer.cpp \
+LOCAL_SHARED_LIBRARIES := liblog libEGL libutils libcutils
+LOCAL_SRC_FILES := vsync/vsync.cpp \
+                   android/hwcomposer.cpp \
                    dump_bmp.cpp
 LOCAL_MODULE := hwcomposer.$(TARGET_BOARD_PLATFORM)
 LOCAL_C_INCLUDES := $(TOP)/frameworks/native/include/utils \
-                    $(LOCAL_PATH)/android \
+		    $(LOCAL_PATH)/vsync \
+	            $(LOCAL_PATH)/android \
                     $(LOCAL_PATH)/../gralloc \
                     $(LOCAL_PATH)/../mali/src/ump/include
 LOCAL_CFLAGS:= -DLOG_TAG=\"hwcomposer\"
 
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc8810)
+	LOCAL_CFLAGS += -D_VSYNC_USE_SOFT_TIMER
+endif
+
+ifeq ($(strip $(TARGET_BOARD_PLATFORM)),sc7710)
+	LOCAL_CFLAGS += -D_VSYNC_USE_SOFT_TIMER
+endif
 endif
 
 LOCAL_MODULE_TAGS := optional

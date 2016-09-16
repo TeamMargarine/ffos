@@ -16,6 +16,12 @@
 #include <linux/android_alarm.h>
 
 
+#include <sys/vfs.h>
+#include <dirent.h>
+#include <sys/mount.h>
+
+
+
 extern int check_input_dev(const char * cmstr);
 void *refreshen_screen(void *data);
 void free_alarm_surface(int image_pos);
@@ -39,6 +45,7 @@ int ev_get(struct input_event *ev, int dont_wait);
 static pthread_t alarm_t_ShowUi = -1;
 static int alarm_BootSystem;
 unsigned boot_alarm = 0;
+int time_dm;
 
 struct boot_status gs_boot_state = {0};
 struct alarm_db *g_alarm_db_list = NULL;
@@ -56,6 +63,42 @@ void system_shutdown(void)
 	set_next_alarm_time();
 	sync();
 	reboot(LINUX_REBOOT_CMD_POWER_OFF);
+}
+
+static int alarm_mountsd(void)
+{
+        int ret;
+        DIR *dir;
+        struct dirent *ptr;
+        char sd[21] = "/dev/block/";
+        char *device = "mmcblk0p1";
+        dir = opendir("/dev/block");
+
+        while( (ptr=readdir(dir)) != NULL ){
+                ret = strncmp(ptr->d_name, "mmcblk0", strlen("mmcblk0"));
+                if(ret == 0){
+                        if( (strcmp(ptr->d_name, device)<0) && (strcmp(ptr->d_name, "mmcblk0p")>0) ){
+                                device = ptr->d_name;
+                                LOGE("sdcard:%s\n", device);
+                        }
+                }
+        }
+        ret = -1;
+        strcat(sd, device);
+
+        ret = mount(sd, "/sdcard", "vfat", MS_NOATIME | MS_NODEV | MS_NODIRATIME | MS_NOSUID , "utf8=true");
+
+        if(ret == 0){
+                LOGE("alarm_mount sdmount %s done\n", sd);
+                return ret;
+        }
+        LOGE("Can't mount %s\n(%s)\n", sd, strerror(errno));
+        return -1;
+}
+
+static void alarm_umountsd(void)
+{
+        umount("/sdcard");
 }
 
 //add list g_alarm_db_list form alarms.db
@@ -114,7 +157,8 @@ char *get_ring_file(void)
 	char *abs_time = strtok(NULL, " \t\n");
 	char *ring_time = strtok(NULL, " \t\n");
 	char *snooze_time = strtok(NULL, " \t\n");
-	char *file_path = strtok(NULL, " \t\n");
+	char *time_mdm = strtok(NULL, " \t\n");
+	char *file_path = strtok(NULL, "\t\n");
 	if(ring_time != NULL)
 		ring_length = strtoul(ring_time, (char **)NULL, 10);
 	else
@@ -125,8 +169,19 @@ char *get_ring_file(void)
 
 	if (file_path != NULL && stat(file_path, &s) != 0) {
 		LOGE("%s cannot find '%s'\n", file_path);
-		file_path = NULL;
-	}
+                file_path = NULL;
+                LOGE("errno--(%s)\n",  strerror(errno));
+                alarm_umountsd();
+                sleep(5);
+                alarm_mountsd();
+                sleep(5);
+
+                if (file_path != NULL && stat(file_path, &s) != 0) {
+                    LOGE("%s cannot find '%s'\n", file_path);
+                    LOGE("errno--(%s)\n",  strerror(errno));
+                    file_path = NULL;
+                }
+        }
 
 	if(snooze_time != NULL)
 		snooze_length = strtoul(snooze_time, (char **)NULL, 10);
@@ -177,6 +232,35 @@ int get_poweron_file(void)
 	LOGD("abstime_power=%d\n", abstime_power);
 	return abstime_power;
 }
+void  get_time_dm(void){
+	char *alarm_name = "/productinfo/alarm_flag";
+	int alarm_flag_fd = -1;
+	int ret;
+	alarm_flag_fd = open(alarm_name, O_RDWR);
+	if(alarm_flag_fd < 0){
+		LOGE("%s open error: %s\n", alarm_name, strerror(errno));
+		return 0;
+	}
+
+	ret = read(alarm_flag_fd, read_buf, sizeof(read_buf));
+	if(ret < 0){
+		close(alarm_flag_fd);
+		LOGD("read %s failed\n", alarm_name);
+		return 0;
+	}else{
+		LOGD("%s get: %s\n", alarm_name, read_buf);
+	}
+	char *rel_time = strtok(read_buf, " \t\n");
+	char *abs_time = strtok(NULL, " \t\n");
+	char *ring_time = strtok(NULL, " \t\n");
+	char *snooze_time = strtok(NULL, " \t\n");
+	char *time_mdm = strtok(NULL, " \t\n");
+	char *file_path = strtok(NULL, " \t\n");
+	if(time_mdm != NULL){
+		time_dm = atoi(time_mdm);
+	}
+	close(alarm_flag_fd);
+}
 int update_ring_file(void)
 {
 
@@ -211,6 +295,7 @@ int update_ring_file(void)
 	char *abs_time = strtok(NULL, " \t\n");
 	char *ring_time = strtok(NULL, " \t\n");
 	char *snooze_time = strtok(NULL, " \t\n");
+	char *time_mdm = strtok(NULL, " \t\n");
 	char *file_path = strtok(NULL, " \t\n");
 	if(rel_time != NULL)
 		reltime = strtoul(rel_time, NULL, 10);
@@ -225,7 +310,7 @@ int update_ring_file(void)
 		reltime=abstime -abstime_aralm +reltime;
 		if(abstime < abstime_power || abstime_power <= timenow){
 			LOGD("timenow=%d,abstime=%d,reltime=%d\n", timenow, abstime,reltime);
-			sprintf(buf,"%d\n%d\n%s\n%s\n%s\n", reltime, abstime,ring_time,snooze_time,file_path);
+			sprintf(buf,"%d\n%d\n%s\n%s\n%s\n%s\n", reltime, abstime,ring_time,snooze_time,time_mdm,file_path);
 			alarm_flag_fd = open(alarm_name, O_CREAT | O_RDWR,0664);
 			if(alarm_flag_fd < 0){
 				LOGE("%s open error: %s\n", alarm_name, strerror(errno));
@@ -322,6 +407,7 @@ int alarm_init(void)
 
 	gr_init();
 	gr_clean();
+	get_time_dm();
 	add_alarm_db_list();
 	if(creat_alarm_sec_list() == NULL)
 	{
@@ -329,6 +415,7 @@ int alarm_init(void)
 		return ERR_BOOT_ALARM_NOT_ALARM_ITEM;
 	}
 
+	alarm_mountsd();
 	get_ring_file();
 	sprintf(g_brightness,"%d", 100);
 	gs_boot_state.alarm_state = BOOT_ALARM_ALARMING;
@@ -475,9 +562,11 @@ LOGD("%s: line: %d &fire_alarm %p\n", __func__, __LINE__, &fire_alarm);
 				gs_boot_state.alarm_state = BOOT_ALARM_SLEEP;
 				update_alarm_sec_list(alarm_item_bak,g_alarm_snooze_time);
 				int latest = get_latest_alarm_time(&fire_alarm);
-				LOGD("latest=%d,g_alarm_snooze_time =%d\n",latest,g_alarm_snooze_time);
-				if(latest > 0)
-				{
+				LOGE("latest=%d,g_alarm_snooze_time =%d\n",latest,g_alarm_snooze_time);
+				
+                                //if(latest > 0)
+				if((latest < 3*60) && (latest >0))
+                                {
 					int powertime = abstime_power - time(NULL);
 					if(powertime > 0 && powertime < latest)
 					{
@@ -497,6 +586,18 @@ LOGD("%s: line: %d &fire_alarm %p\n", __func__, __LINE__, &fire_alarm);
 						break;
 					}
 				}
+                                else if(latest >= 3*60)
+                                {
+                                        gs_boot_state.alarm_state = BOOT_ALARM_STOP;
+                                        update_ring_file();
+                                        usleep(500000);
+                                        usleep(500000);
+                                        system_shutdown();
+                                        LOGE("shutdown system\n");
+                                        return 0;
+                                }
+
+
 				gr_clean();
 				gs_boot_state.alarm_state = BOOT_ALARM_ALARMING;
 				print_images(ALARM_WARNING_IMG_POS);
@@ -571,6 +672,7 @@ LOGD("%s: line: %d &fire_alarm %p\n", __func__, __LINE__, &fire_alarm);
 	gs_boot_state.alarm_state = BOOT_ALARM_EXIT;
 	boot_alarm_exit();
 	LOGE(" alarm final exit\n");
+	alarm_umountsd();
 	return 0;
 }
 
@@ -1206,7 +1308,8 @@ int musicProcess(char *filename, int op)
 		return -5;
 	}
 	if(filename == NULL)
-		filename=BOOT_ALARM_DEFAULT_RING;
+//		filename=BOOT_ALARM_DEFAULT_RING;
+                return -1; //Bug176869
 	pid = fork();
 	pid_mp3_player = pid;
 

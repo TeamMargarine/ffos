@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-int eng_at_open(int type);
+int eng_at_open(char *name,int type);
 int eng_at_read(int fd, char *buf, int buflen);
 int eng_at_write(int fd, char *buf, int buflen);
 

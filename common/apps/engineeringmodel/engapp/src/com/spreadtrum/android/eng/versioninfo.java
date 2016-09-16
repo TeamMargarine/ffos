@@ -3,14 +3,17 @@ package com.spreadtrum.android.eng;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.util.Log;
 import android.widget.TextView;
 
 public class versioninfo extends Activity {
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String TAG = "versioninfo";
 	private int sockid = 0;
 	private engfetch mEf;
@@ -48,8 +51,10 @@ public class versioninfo extends Activity {
 			ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
 			DataOutputStream outputBufferStream = new DataOutputStream(
 					outputBuffer);
-
-			str = String.format("%d,%d", code, 0);
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+            //str = String.format("%d,%d", code, 0);
+            str = new StringBuilder().append(code).append(",").append(0).toString();
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 			try {
 				outputBufferStream.writeBytes(str);
 			} catch (IOException e) {
@@ -62,10 +67,21 @@ public class versioninfo extends Activity {
 			int dataSize = 256;
 			byte[] inputBytes = new byte[dataSize];
 			int showlen = mEf.engread(sockid, inputBytes, dataSize);
-			final String str = new String(inputBytes, 0, showlen);
+			final String str = new String(inputBytes, 0, showlen,Charset.defaultCharset());
 			mUiThread.post(new Runnable() {
 				public void run() {
-					txtViewlabel01.setText(str);
+					//179956 begin
+					//txtViewlabel01.setText(str);
+					final String ret = System.getProperty("line.separator");
+					String better_str = str.replace("  ", "");
+					better_str = better_str.replace(",", ret + ret);
+					better_str = better_str.replace("Platform Version:", "Platform version:" + ret);
+					better_str = better_str.replace("Project Version:", "Project version:" + ret);
+					better_str = better_str.replace("BASEVersion:", "Base version:" + ret);
+					better_str = better_str.replace("HW Version:", "Hardware version:" + ret);
+					better_str = better_str.replace("Rel Date:", "Release date:" + ret);
+					txtViewlabel01.setText(better_str);
+					//179956 end
 				}
 			});
 			break;

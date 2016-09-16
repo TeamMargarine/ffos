@@ -45,9 +45,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <cutils/log.h>
+
 /* START: Configuration */
 #ifndef UMP_PRINTF
-	#define UMP_PRINTF printf
+	#define UMP_PRINTF ALOGD
 #endif /* UMP_PRINTF */
 
 #ifndef UMP_PRINT_FLUSH

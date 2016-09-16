@@ -60,7 +60,7 @@ int mmi_audio_mode_map(int ap_mode)
             cp_mode = 1;
     }
     else if (ap_mode ==4) {
-            cp_mode=3;
+            cp_mode=2;
     }
     return cp_mode;
 }
@@ -132,8 +132,8 @@ void *mmi_audio_loop_thread(void *args)
 	                break;
                     case 1: {
                             int mode = 0, vol = 100;
-                            int loopbacktype=0;
-                            int voiceformat=1;
+                            int loopbacktype=1;
+                            int voiceformat=0;
                             int delaytime=0;
                             exit=0;
                             if (mmi_pop(&p, &ptr, ',', &len)) mode = strtol(ptr, NULL, 0);

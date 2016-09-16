@@ -1,30 +1,30 @@
 package com.spreadtrum.android.eng;
 
-import android.util.Log;
-import android.widget.Toast;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import android.app.AlertDialog.Builder;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemProperties;
-import android.preference.ListPreference;
-import android.preference.PreferenceScreen;
+import android.preference.CheckBoxPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
-import android.preference.PreferenceManager;
-import android.app.AlertDialog.Builder;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-import android.content.Intent;
-
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.Map.Entry;
+import android.preference.PreferenceScreen;
+import android.util.Log;
+import android.widget.Toast;
 
 
 class BandSelectDecoder {
@@ -84,6 +84,7 @@ class BandSelectDecoder {
 }
 
 public class DebugParam extends PreferenceActivity {
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String TAG = "DebugParam";
 	private static final String TEXT_INFO = "text_info";
 
@@ -92,6 +93,7 @@ public class DebugParam extends PreferenceActivity {
     private static final String PLMNSELECT = "key_plmnselect";
     private static final String ASSERT_MODE = "key_assertmode";
     private static final String MANUAL_MODE = "key_manualassert";
+    private static final String RILD_SETTING = "key_rildsetting";
 
     private static final int GET_BAND_SELECT = 0;
     private static final int SET_BAND_SELECT = 1;
@@ -100,7 +102,7 @@ public class DebugParam extends PreferenceActivity {
     private static final int SET_MANUAL_ASSERT = 4;
     private static final int INIT_BAND_REFERENCE = 5;
     private static final int INIT_ASSERT_REFERENCE = 6;
-
+    private static final int SETTING_RILD = 7;
 
 
     private static final int ASSERT_DEBUG_MODE = 0;
@@ -124,6 +126,7 @@ public class DebugParam extends PreferenceActivity {
     private int mAssertMdoe;
     //private Preference mAssertModePreference;
     private Preference mBandSelectPreference;
+    private CheckBoxPreference rildSettingPref ;
     private Handler mThread;
     private Handler mUiThread;
     private boolean mHaveFinish = true;
@@ -135,7 +138,25 @@ public class DebugParam extends PreferenceActivity {
         addPreferencesFromResource(R.layout.debugparam);
         //mAssertModePreference = (Preference)findPreference(ASSERT_MODE);
         mBandSelectPreference = (Preference)findPreference(BAND_SELECT);
-
+        /*Add 20130523 Spreadst of add RILD  control UI start*/
+        rildSettingPref=(CheckBoxPreference)findPreference(RILD_SETTING);
+        boolean rildStatus =SystemProperties.getBoolean("persist.sys.sprd.attest", false);
+        rildSettingPref.setChecked(rildStatus);
+        if(rildStatus){
+            rildSettingPref.setSummary("RILD will be closed after restart");
+        }else{
+            rildSettingPref.setSummary("RILD will work after restart");
+        }
+        /*Add 20130523 Spreadst of add RILD  control UI end*/
+        /*Add 20130206 Spreadst of 122017 8810 7710 don't support PLMN start*/
+        String mode = SystemProperties.get("ro.product.hardware");
+        /*Modify 20130306 Spreadst of 130799 77XX dont support PLMN start */
+        if(null != mode){//mode.contains("8810") ||mode.contains("77")||mode.contains("8825")){
+            getPreferenceScreen().removePreference((Preference)findPreference("key_forbidplmn"));
+            getPreferenceScreen().removePreference((Preference)findPreference("key_plmnselect"));
+        }
+        /*Modify 20130306 Spreadst of 130799 77XX dont support PLMN end  */
+        /*Add 20130206 Spreadst of 122017 8810 7710 don't support PLMN end*/
         mUiThread = new Handler();
         HandlerThread t = new HandlerThread("debugparam");
         t.start();
@@ -274,6 +295,13 @@ public class DebugParam extends PreferenceActivity {
     		}
 			case SET_MANUAL_ASSERT:
 	            setManualAssert();
+
+              if(mEf !=  null) {
+                  mEf = null;
+              }
+              mEf = new engfetch();
+              mSocketID = mEf.engopen();
+
 				break;
 			case INIT_BAND_REFERENCE:{
 				final String summary = getBandSelectSummary(getSelectedBand());
@@ -320,7 +348,17 @@ public class DebugParam extends PreferenceActivity {
         } else if(PLMNSELECT.equals(key)) {
             Intent intent = new Intent(this, TextInfo.class);
             startActivity(intent.putExtra(TEXT_INFO, 2));
+            /*Add 20130523 Spreadst of add RILD  control UI start*/
+        } else if(RILD_SETTING.equals(key)){
+            if(rildSettingPref.isChecked()){
+                SystemProperties.set("persist.sys.sprd.attest", "true");
+                rildSettingPref.setSummary("RILD will be closed after restart");
+            }else{
+                SystemProperties.set("persist.sys.sprd.attest", "false");
+                rildSettingPref.setSummary("RILD will work after restart");
+            }
         }
+        /*Add 20130523 Spreadst of add RILD  control UI end*/
         return true;
     }
 
@@ -328,8 +366,11 @@ public class DebugParam extends PreferenceActivity {
         //Sim1
         outputBuffer = new ByteArrayOutputStream();
         outputBufferStream = new DataOutputStream(outputBuffer);
-
-        mATline =String.format("%d,%d,%d", engconstents.ENG_AT_SELECT_BAND, 1,bands);
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+        //mATline =String.format("%d,%d,%d", engconstents.ENG_AT_SELECT_BAND, 1,bands);
+        mATline = new StringBuilder().append(engconstents.ENG_AT_SELECT_BAND).append(",").
+                              append(1).append(",").append(bands).toString();
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 
         try {
             outputBufferStream.writeBytes(mATline);
@@ -344,7 +385,7 @@ public class DebugParam extends PreferenceActivity {
         byte[] inputBytes = new byte[dataSize];
 
         int showlen= mEf.engread(mSocketID, inputBytes, dataSize);
-        String mATResponse =  new String(inputBytes, 0, showlen);
+        String mATResponse =  new String(inputBytes, 0, showlen,Charset.defaultCharset());
         if(mATResponse.indexOf("ERROR") != -1) {
             Toast.makeText(this,R.string.set_bands_error,Toast.LENGTH_LONG).show();
             return false;
@@ -355,8 +396,11 @@ public class DebugParam extends PreferenceActivity {
     private int getSelectedBand() {
         outputBuffer = new ByteArrayOutputStream();
         outputBufferStream = new DataOutputStream(outputBuffer);
-
-        mATline =String.format("%d,%d", engconstents.ENG_AT_CURRENT_BAND, 0);
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+//        mATline =String.format("%d,%d", engconstents.ENG_AT_CURRENT_BAND, 0);
+        mATline = new StringBuilder().append(engconstents.ENG_AT_CURRENT_BAND).append(",")
+                              .append(0).toString();
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 
         try {
             outputBufferStream.writeBytes(mATline);
@@ -372,7 +416,7 @@ public class DebugParam extends PreferenceActivity {
 
         int showlen= mEf.engread(mSocketID, inputBytes, dataSize);
         String mATResponse =  new String(inputBytes, 0, showlen);
-        Log.d(TAG, "getSelectedBand result : " + mATResponse);
+        if(DEBUG) Log.d(TAG, "getSelectedBand result : " + mATResponse);
         int value = ERROR;
         try{
         	value = Integer.parseInt(mATResponse);
@@ -385,8 +429,11 @@ public class DebugParam extends PreferenceActivity {
     private int getAssertMode() {
         outputBuffer = new ByteArrayOutputStream();
         outputBufferStream = new DataOutputStream(outputBuffer);
-
-        mATline =String.format("%d,%d", engconstents.ENG_AT_GET_ASSERT_MODE, 0);
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+//        mATline =String.format("%d,%d", engconstents.ENG_AT_GET_ASSERT_MODE, 0);
+        mATline = new StringBuilder().append(engconstents.ENG_AT_GET_ASSERT_MODE).append(",")
+        .append(0).toString();
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 
         try {
             outputBufferStream.writeBytes(mATline);
@@ -400,7 +447,7 @@ public class DebugParam extends PreferenceActivity {
 
         int showlen= mEf.engread(mSocketID, inputBytes, dataSize);
         String mATResponse =  new String(inputBytes, 0, showlen);
-        Log.d(TAG, "getAssertMode result : " + mATResponse);
+        if(DEBUG) Log.d(TAG, "getAssertMode result : " + mATResponse);
         if(mATResponse.indexOf("+SDRMOD: 1") != ERROR) {
             return ASSERT_RELEASE_MODE;
         }else if(mATResponse.indexOf("+SDRMOD: 0") != ERROR) {
@@ -414,8 +461,11 @@ public class DebugParam extends PreferenceActivity {
 
         outputBuffer = new ByteArrayOutputStream();
         outputBufferStream = new DataOutputStream(outputBuffer);
-
-        mATline =String.format("%d,%d,%d", engconstents.ENG_AT_SET_ASSERT_MODE, 1,mode);
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+//        mATline =String.format("%d,%d,%d", engconstents.ENG_AT_SET_ASSERT_MODE, 1,mode);
+        mATline = new StringBuilder().append(engconstents.ENG_AT_SET_ASSERT_MODE).append(",")
+        .append(1).append(",").append(mode).toString();
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
         System.out.println("onPreferenceChange At Line is " + mATline);
         try {
             outputBufferStream.writeBytes(mATline);
@@ -431,7 +481,7 @@ public class DebugParam extends PreferenceActivity {
 
         int showlen= mEf.engread(mSocketID, inputBytes, dataSize);
         String mATResponse =  new String(inputBytes, 0, showlen);
-        Log.d(TAG, "setAssertMode result is " + mATResponse);
+        if(DEBUG) Log.d(TAG, "setAssertMode result is " + mATResponse);
         if(mATResponse.contains("OK")) {
             return true;
         }
@@ -441,8 +491,11 @@ public class DebugParam extends PreferenceActivity {
     private void setManualAssert() {
         outputBuffer = new ByteArrayOutputStream();
         outputBufferStream = new DataOutputStream(outputBuffer);
-
-        mATline =String.format("%d,%d", engconstents.ENG_AT_SET_MANUAL_ASSERT, 0);
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+//        mATline =String.format("%d,%d", engconstents.ENG_AT_SET_MANUAL_ASSERT, 0);
+        mATline = new StringBuilder().append(engconstents.ENG_AT_SET_MANUAL_ASSERT)
+                  .append(",").append(0).toString();
+        /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 
         try {
             outputBufferStream.writeBytes(mATline);
@@ -452,7 +505,7 @@ public class DebugParam extends PreferenceActivity {
 
         int datasize = outputBuffer.toByteArray().length;
         int iRet = mEf.engwrite(mSocketID,outputBuffer.toByteArray(), datasize);
-        Log.d(TAG, "setManualAssert engwrite size: " + iRet);
+        if(DEBUG) Log.d(TAG, "setManualAssert engwrite size: " + iRet);
         if(datasize == iRet) {
         	Toast.makeText(DebugParam.this, "Success", Toast.LENGTH_SHORT).show();
         }else{

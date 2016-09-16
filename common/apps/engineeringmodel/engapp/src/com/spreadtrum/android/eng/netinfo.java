@@ -9,11 +9,15 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo.State;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.widget.TextView;
 
 public class netinfo extends Activity {
+    private static final boolean DEBUG = Debug.isDebug();
 	private static final String TAG = "netinfo";
 	private int sockid = 0;
 	private engfetch mEf;
@@ -45,8 +49,15 @@ public class netinfo extends Activity {
 					requestEvent(engconstents.ENG_AT_CCED, 0, SCELL);
 					requestEvent(engconstents.ENG_AT_CCED, 0, NCELL);
 				} else {
-					tv1.setText("network is unavailable");
-					Log.d(TAG, "network is unavailable");
+                    // Bug 203546 start
+                    Looper.prepare();
+                    new NetinfoToast().sendEmptyMessage(0);
+                    Looper.loop();
+                    /*
+                    tv1.setText("network is unavailable");
+                    if(DEBUG) Log.d(TAG, "network is unavailable");
+                    */
+                    // Bug 203546 end
 				}
 			}
 		}).start();
@@ -57,8 +68,12 @@ public class netinfo extends Activity {
 		case engconstents.ENG_AT_CCED:
 			ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
 			DataOutputStream outputBufferStream = new DataOutputStream(outputBuffer);
-			Log.e(TAG, "engopen sockid=" + sockid);
-			str = String.format("%d,%d,%d,%d", code, 2, arg1,arg2);
+			if(DEBUG) Log.d(TAG, "engopen sockid=" + sockid);
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+            //str = String.format("%d,%d,%d,%d", code, 2, arg1,arg2);
+            str = new StringBuilder().append(code).append(",").append(2)
+                  .append(",").append(arg1).append(",").append(arg2).toString();
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 			try {
 				outputBufferStream.writeBytes(str);
 			} catch (IOException e) {
@@ -71,13 +86,18 @@ public class netinfo extends Activity {
 			byte[] inputBytes = new byte[dataSize];
 			int showlen = mEf.engread(sockid, inputBytes, dataSize);
 			String str = new String(inputBytes, 0, showlen).trim();
-			Log.d(TAG, "get result : " + str);
+			if(DEBUG) Log.d(TAG, "get result : " + str);
 			if (arg2 == SCELL) {
 				String s = "";
 				if (str.indexOf(",") != -1) {
 					String[] strs = str.split(",");
-					s = String.format("        %s,%s,%s,%s", strs[0],
-							strs[1], strs[5], strs[6]);
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+              //      s = String.format("        %s,%s,%s,%s", strs[0],
+              //              strs[1], strs[5], strs[6]);
+                    s = new StringBuilder().append("        ").append(strs[0]).append(",")
+                        .append(strs[1]).append(",").append(strs[5]).append(",").append(strs[6])
+                        .toString();
+/*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 					updateUi(tv1_1, s);
 				} else {
 					updateUi(tv1_1,"    "+str);
@@ -88,9 +108,16 @@ public class netinfo extends Activity {
 					String s = "";
 					int nums = strs.length / 7;
 					for (int i = 0; i < nums; i++) {
-						s += String.format("        %s,%s,%s,%s\n",
-								strs[i * 7], strs[i * 7 + 1],
-								strs[i * 7 + 5], strs[i * 7 + 6]);
+    /*Modify 20130205 Spreadst of 125480 change the method of creating cmd start*/
+//                        s += String.format("        %s,%s,%s,%s\n",
+//                                strs[i * 7], strs[i * 7 + 1],
+//                                strs[i * 7 + 5], strs[i * 7 + 6]);
+                        /*Modify 20130325 Spreadst of 141672 change the display method start */
+                        s +=new StringBuilder().append("        ").append(strs[i * 7]).append(",")
+                            .append(strs[i * 7 + 1]).append(",").append(strs[i * 7 + 5]).append(",")
+                            .append(strs[i * 7 + 6]).append("\n").toString();
+                        /*Modify 20130325 Spreadst of 141672 change the display method end */
+    /*Modify 20130205 Spreadst of 125480 change the method of creating cmd end*/
 					}
 					updateUi(tv2_2, s);
 				} else {
@@ -122,5 +149,18 @@ public class netinfo extends Activity {
 		else
 			return true;
 	}
+
+	// Bug 203546 start
+	private class NetinfoToast extends Handler
+	{
+	    @Override
+	    public void handleMessage(Message msg) {
+	     // TODO Auto-generated method stub
+	        super.handleMessage(msg);
+            tv1.setText("network is unavailable");
+            if(DEBUG) Log.d(TAG, "network is unavailable");
+	    }
+	}
+	// Bug 203546 end
 
 }

@@ -443,7 +443,7 @@ int  send_data_message(int fd,char *buffer,int data_size,int flag)
 	}
 	else
 	{
-		//memcpy(&send_buffer[2],buffer,data_size);
+	//	memcpy(&send_buffer[2],buffer,data_size);
 		size = setup_packet(BSL_CMD_MIDST_DATA,(char *)buffer,8,data_size,flag);
 		retval = write(fd,buffer,size);
 	}

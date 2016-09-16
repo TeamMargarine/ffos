@@ -32,6 +32,7 @@ static void set_vlog_priority(void)
 }
 
 #define FILE_PATH "/mnt/sdcard/"
+#define COREDUMP_PATH FILE_PATH"slog/corefile"
 /*
  * create simple unique file name
  * filename = path+pid.log
@@ -55,6 +56,7 @@ int main(int argc, char **argv)
 {
 	int pipe_fd;
 	int dst_fd;
+        int status;
 	int res;
 	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP;
 
@@ -65,6 +67,12 @@ int main(int argc, char **argv)
 	printf("open usb serial\n");
 
 	create_log_file_name(file_name);
+
+        status = mkdir(COREDUMP_PATH, 0777);
+        if(status!=0x0)
+            printf("%s created failed, errno=%d\n", COREDUMP_PATH, errno);
+        else
+            printf("%s created success\n", COREDUMP_PATH);
 
 	dst_fd = open(file_name,O_WRONLY | O_CREAT | O_TRUNC, mode);
 	if(dst_fd < 0) {

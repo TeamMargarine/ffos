@@ -234,7 +234,7 @@ LOCAL int32_t get_cur_sample_rate(void)
 			 eq_input_para.eEqParaType		= FILTER_EQPARA_LOW_SHELVE;
 			 eq_input_para.unEqPara.fo_next = hpf_param_ptr->eq_band_para[i+1].fo;
 		 }
-		 else if((i==(hpf_param_ptr->eq_band_num-1))&&(hpf_param_ptr->high_shelve_on))
+		 else if((i==(hpf_param_ptr->eq_band_num-1))&&(hpf_param_ptr->high_shelve_on) && (hpf_param_ptr->eq_band_num >= 2))
 		 {
 			 eq_input_para.eEqParaType		= FILTER_EQPARA_HIGH_SHELVE;
 			 eq_input_para.unEqPara.fo_last = hpf_param_ptr->eq_band_para[hpf_param_ptr->eq_band_num-2].fo;

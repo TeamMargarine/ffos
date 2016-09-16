@@ -59,7 +59,7 @@ int eng_sqlite_create(void)
 
 	//create str2int table
 	memset(sql_createtable, 0, SPRDENG_SQL_LEN);
-	sprintf(sql_createtable, "CREATE TABLE %s(name VARCHAR(32) PRIMARY KEY,value INTEGER);",ENG_STRING2INT_TABLE);	
+	sprintf(sql_createtable, "CREATE TABLE %s(id INTEGER PRIMARY KEY, groupid INTEGER,name VARCHAR(32),value INTEGER);",ENG_STRING2INT_TABLE);
 
 	rc = sqlite3_exec(db, sql_createtable, NULL, NULL, &errmsg);
 	if(rc==1) {
@@ -151,7 +151,7 @@ int eng_sql_string2int_set(char* name, int value)
 		}
 	} else { //insert item
 		memset(sqlbuf, 0, SPRDENG_SQL_LEN);
-		sprintf(sqlbuf, "INSERT INTO %s VALUES('%s',%d);", ENG_STRING2INT_TABLE, name, value); 
+		sprintf(sqlbuf, "INSERT INTO %s VALUES(1,0,'%s',%d);", ENG_STRING2INT_TABLE, name, value);
 		ENG_LOG("%s: sqlbuf=%s\n",__FUNCTION__, sqlbuf);
 		
 		rc = sqlite3_exec(db, sqlbuf, NULL, NULL, &errmsg);

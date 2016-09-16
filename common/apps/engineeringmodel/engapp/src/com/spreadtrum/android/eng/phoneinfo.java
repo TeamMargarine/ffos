@@ -1,16 +1,17 @@
 package com.spreadtrum.android.eng;
 
-import android.os.Bundle;
 import android.app.ListActivity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.Debug;
+import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.AdapterView;
-import android.widget.Toast;
 import android.widget.TextView;
-import android.widget.AdapterView.OnItemClickListener;
-import android.content.Intent;
-import android.util.Log;
+import android.widget.Toast;
 
 /**
  * Using a LogTextBox to display a scrollable text area
@@ -20,7 +21,7 @@ import android.util.Log;
 public class phoneinfo extends ListActivity {
 
     private static final String LOG_TAG = "engphoneinfo";
-    
+    private static final boolean DEBUG = Debug.isDebug();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,7 +36,7 @@ public class phoneinfo extends ListActivity {
         lv.setOnItemClickListener(new OnItemClickListener() {
           public void onItemClick(AdapterView<?> parent, View view,
               int position, long id) {
-            Log.e(LOG_TAG, "phoneinfo: p=" + position +"id="+ id);              
+          if(DEBUG) Log.d(LOG_TAG, "phoneinfo: p=" + position +"id="+ id);              
           	switch (position)
         	{
         	case 0:

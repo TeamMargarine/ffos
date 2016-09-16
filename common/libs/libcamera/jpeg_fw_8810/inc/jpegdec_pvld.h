@@ -30,6 +30,27 @@
 //#define huff_EXTEND(x, s) ((x) < (1 <<((s) -1)) ? \
 //		(x) + (-1 <<(s)) +1 : \
 //		(x))
+#if PROGRESSIVE_SUPPORT
+#define HUFF_DECODE(result,tbl,slowlabel) \
+{   register int32 nb, look; \
+	if (s_jremain_bit_num < HUFF_FIRST_READ) { \
+    JPEG_Fill_Bit_Buffer();\
+    if (s_jremain_bit_num < HUFF_FIRST_READ) { \
+	nb = 1; goto slowlabel; }\
+	} \
+	look = PEEK_BITS(HUFF_FIRST_READ); \
+	if ((nb = tbl->look_nbits[look]) != 0) { \
+    DROP_BITS(nb); \
+    result = tbl->look_sym[look]; \
+	} else { \
+    nb = HUFF_FIRST_READ+1; \
+slowlabel: \
+    result=huff_DECODE_Progressive(tbl,nb);\
+} \
+}
+
+uint32 JPEG_Generate_Entry_Point_Map_Progressive(void);
+#endif
 /**---------------------------------------------------------------------------*
 **                         Compiler Flag                                      *
 **---------------------------------------------------------------------------*/
