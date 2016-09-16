@@ -118,7 +118,6 @@ on cali
     class_start cali
     insmod /system/lib/modules/mali.ko
     insmod /system/lib/modules/trout_fm.ko
-	write /sys/class/backlight/sprd_backlight/brightness 0
 
 service engpcclient /system/bin/engpc
     class cali
@@ -144,4 +143,61 @@ on property:persist.modem.w.enable=1
 on property:persist.modem.t.enable=1
     start nvitemd_td
 
+#add for factorytest
+on factorytest
+    ubiattach 0 ubipac
+    mount_all /fstab.scx15
+    chown system system /data
+    chmod 0771 /data
+    mkdir /data/local 0751 root root
+    mkdir /data/local/media 0751 media media
+    class_start factorytest
+    trigger adb_enable
+
+    chmod 777 /system/etc/GPSenseEngine.xml
+    chmod 777 /system/bin/GPSenseEngine
+    setprop gps.port ttyV1
+
+    chmod 0777 /etc
+    copy /system/etc/audio_para /etc/audio_para
+    copy /system/etc/audio_hw.xml /etc/audio_hw.xml
+    copy /system/etc/tiny_hw.xml /etc/tiny_hw.xml
+    copy /system/etc/codec_pga.xml /etc/codec_pga.xml
+    copy /system/etc/audio_policy.conf /etc/audio_policy.conf
+    copy /system/etc/audio_effects.conf /etc/audio_effects.conf
+    chmod 0777 /etc/audio_para
+    chmod 0777 /etc/audio_hw.xml
+    chmod 0777 /etc/tiny_hw.xml
+    chmod 0777 /etc/codec_pga.xml
+    chmod 0777 /etc/audio_policy.conf
+    chmod 0777 /etc/audio_effects.conf
+
+service factorytest /system/bin/factorytest
+    class factorytest
+    user root
+    oneshot
+
+service GPSenseEngine /system/bin/GPSenseEngine
+    class factorytest
+    user root
+    group root
+    disabled
+
+service servicemanager /system/bin/servicemanager
+    class factorytest
+    user root
+    group root
+    critical
+    onrestart restart media
+    onrestart restart drm
+
+service media /system/bin/mediaserver
+    class factorytest
+    user media
+    group audio camera inet net_bt net_bt_admin net_bw_acct drmrpc mediadrm
+    ioprio rt 4
+
+service debuggerd /system/bin/debuggerd
+    class factorytest
+    user root
 

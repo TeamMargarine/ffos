@@ -58,6 +58,9 @@ PRODUCT_PACKAGES += \
 	mplayer \
 	e2fsck \
 	tinymix \
+	tinycap \
+	tinyplay \
+	factorytest \
 	audio_vbc_eq \
 	calibration_init \
 	modemd \
@@ -68,6 +71,7 @@ PRODUCT_PACKAGES += \
 	batterysrv \
 	refnotify \
 	wcnd \
+	wpa_cli \
 	libsprdstreamrecoder \
 	libvtmanager  \
 	zram.sh \
@@ -82,6 +86,7 @@ PRODUCT_COPY_FILES += \
 	$(PLATDIR)/sci-keypad.kl:system/usr/keylayout/sci-keypad.kl \
 	$(PLATDIR)/media_codecs.xml:system/etc/media_codecs.xml \
 	$(PLATDIR)/media_profiles.xml:system/etc/media_profiles.xml \
+	$(PLATDIR)/engtest_sample.wav:system/media/engtest_sample.wav \
         vendor/sprd/open-source/res/spn/spn-conf.xml:system/etc/spn-conf.xml \
 	vendor/sprd/open-source/res/apn/apns-conf.xml:system/etc/apns-conf.xml \
 	vendor/sprd/open-source/res/productinfo/productinfo.bin:prodnv/productinfo.bin \
@@ -141,9 +146,6 @@ ifeq ($(strip $(MOZILLA_OFFICIAL)),)
 export MOZILLA_OFFICIAL=1
 endif
 
-ifeq ($(strip $(GAIA_DISTRIBUTION_DIR)),)
-export GAIA_DISTRIBUTION_DIR=$(PWD)/device/sprd/scx15_sp7715ga/
-endif
 
 ifeq ($(strip $(LOCALE_BASEDIR)),)
 export LOCALE_BASEDIR=$(PWD)/gaia-l10n/
@@ -165,7 +167,23 @@ ifeq ($(strip $(NOFTU)),)
 ifeq ($(TARGET_BUILD_VARIANT), user)
 export NOFTU=0
 else
-export NOFTU=1
+export NOFTU=0
+endif
+endif
+
+ifeq ($(strip $(DEVICE_DEBUG)),)
+ifeq ($(TARGET_BUILD_VARIANT), user)
+export DEVICE_DEBUG=0
+else
+export DEVICE_DEBUG=1
+endif
+endif
+
+ifeq ($(strip $(GAIA_OPTIMIZE)),)
+ifeq ($(TARGET_BUILD_VARIANT), user)
+export GAIA_OPTIMIZE=1
+else
+export GAIA_OPTIMIZE=1
 endif
 endif
 

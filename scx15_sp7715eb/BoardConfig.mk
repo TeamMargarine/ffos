@@ -20,12 +20,12 @@
 TARGET_RECOVERY_FSTAB := device/sprd/scx15/emmc/recovery.fstab
 
 # board configs
-TARGET_BOOTLOADER_BOARD_NAME := scx15_sp7715ea
-UBOOT_DEFCONFIG := sp7715ea
+TARGET_BOOTLOADER_BOARD_NAME := scx15_sp7715eb
+UBOOT_DEFCONFIG := sp7715eb
 ifeq ($(strip $(BOARD_KERNEL_SEPARATED_DT)),true)
-KERNEL_DEFCONFIG := sp7715ea-dt_defconfig
+KERNEL_DEFCONFIG := sp7715eb-dt_defconfig
 else
-KERNEL_DEFCONFIG := sp7715ea-native_defconfig
+KERNEL_DEFCONFIG := sp7715eb-native_defconfig
 endif
 
 TARGET_GPU_BASE_FREQ := 256

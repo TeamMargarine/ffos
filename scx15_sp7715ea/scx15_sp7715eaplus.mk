@@ -20,6 +20,10 @@ PLATDIR := device/sprd/$(TARGET_PLATFORM)
 TARGET_BOARD := scx15_sp7715ea
 BOARDDIR := device/sprd/$(TARGET_BOARD)
 
+ifeq ($(strip $(GAIA_DISTRIBUTION_DIR)),)
+export GAIA_DISTRIBUTION_DIR=$(PWD)/device/sprd/scx15_sp7715ea/
+endif
+
 # include general common configs
 $(call inherit-product, $(PLATDIR)/device.mk)
 $(call inherit-product, $(PLATDIR)/emmc/emmc_device.mk)
@@ -32,6 +36,9 @@ PRODUCT_AAPT_CONFIG := hdpi
 # Set default USB interface
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
 	persist.sys.usb.config=mass_storage
+
+ENABLE_LIBRECOVERY := true
+RECOVERY_EXTERNAL_STORAGE := /sdcard
 
 PRODUCT_PROPERTY_OVERRIDES += \
 	keyguard.no_require_sim=true \
@@ -83,6 +90,8 @@ PRODUCT_COPY_FILES += \
 	frameworks/native/data/etc/android.hardware.sensor.proximity.xml:system/etc/permissions/android.hardware.sensor.proximity.xml \
 	frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:system/etc/permissions/android.hardware.sensor.accelerometer.xml \
 	frameworks/native/data/etc/android.hardware.sensor.compass.xml:system/etc/permissions/android.hardware.sensor.compass.xml
+
+PRODUCT_COPY_FILES += $(BOARDDIR)/volume.cfg:system/etc/volume.cfg
 
 $(call inherit-product, vendor/sprd/open-source/res/boot/boot_res_8830s.mk)
 $(call inherit-product, frameworks/native/build/phone-hdpi-512-dalvik-heap.mk)

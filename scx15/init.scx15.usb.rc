@@ -5,7 +5,7 @@ on boot
     write /sys/class/android_usb/android0/f_rndis/manufacturer Spreadtrum
     write /sys/class/android_usb/android0/f_rndis/vendorID 8
     write /sys/class/android_usb/android0/f_rndis/wceis 1
-    write /sys/class/android_usb/android0/f_mass_storage/board_support_luns 1
+    write /sys/class/android_usb/android0/f_mass_storage/board_support_luns 2
 
 on fs
     mkdir /dev/usb-ffs 0770 shell shell

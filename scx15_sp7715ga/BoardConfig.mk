@@ -19,7 +19,7 @@
 
 # nand fstab
 TARGET_RECOVERY_FSTAB := device/sprd/scx15/nand/recovery.fstab
-TARGET_UPDATE_BINARY  := $(PRODUCT_OUT)/system/bin/updater
+TARGET_UPDATE_BINARY  := device/sprd/scx15_sp7715ga/update-binary
 
 # board configs
 

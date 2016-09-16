@@ -165,7 +165,7 @@ ifeq ($(strip $(NOFTU)),)
 ifeq ($(TARGET_BUILD_VARIANT), user)
 export NOFTU=0
 else
-export NOFTU=0
+export NOFTU=1
 endif
 endif
 

@@ -20,6 +20,10 @@ PLATDIR := device/sprd/$(TARGET_PLATFORM)
 TARGET_BOARD := scx15_sp7715ga
 BOARDDIR := device/sprd/$(TARGET_BOARD)
 
+ifeq ($(strip $(GAIA_DISTRIBUTION_DIR)),)
+export GAIA_DISTRIBUTION_DIR=$(PWD)/device/sprd/scx15_sp7715ga/
+endif
+
 # include general common configs
 $(call inherit-product, $(PLATDIR)/device.mk)
 $(call inherit-product, $(PLATDIR)/nand/nand_device.mk)
