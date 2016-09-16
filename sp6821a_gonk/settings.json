@@ -1,0 +1,8 @@
+{
+  "apz.force-enable": false,
+  "debugger.remote-mode": "adb-devtools",
+  "keyboard.vibration": false,
+  "keyboard.clicksound": true,
+  "keyboard.autocorrect": false,
+  "keyboard.wordsuggestion": false
+}

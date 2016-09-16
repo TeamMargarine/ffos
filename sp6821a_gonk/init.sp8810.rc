@@ -1,0 +1,309 @@
+import init.sp8810.usb.rc
+
+on early-init
+    export MOZ_CRASHREPORTER 1
+    export MOZ_CRASHREPORTER_DUMP_FB 1
+    export EXTERNAL_STORAGE /mnt/sdcard
+    mkdir /mnt/sdcard 0000 system system
+    symlink /mnt/sdcard /sdcard
+
+on fs
+#   mount_all /fstab.sp8810
+    setprop ro.crypto.fuse_sdcard true
+
+on post-fs
+    insmod /system/lib/modules/ump.ko
+    insmod /system/lib/modules/mali.ko
+    insmod /system/lib/modules/trout_sdio.ko
+
+    insmod /system/lib/modules/trout_bt.ko
+    insmod /system/lib/modules/trout_bt_debug.ko
+    insmod /system/lib/modules/trout_fm.ko
+    chmod 0666 /dev/trout_bt_dev
+    chown bluetooth bluetooth /dev/trout_bt_dev
+    chown system system  /sys/kernel/trout_debug/trout_hcidump_cmd
+
+on post-fs-data
+    # we will remap this as /storage/sdcard0 with the sdcard fuse tool
+    mkdir /data/media 0770 media_rw media_rw
+    mkdir /data/misc/sensors 0777 system system
+
+    chown media_rw media_rw /data/media
+
+    # Set indication (checked by vold) that we have finished this action
+    setprop vold.post_fs_data_done 1
+
+on boot
+    chown system system /sys/class/backlight/sprd_backlight/brightness
+
+    chmod 660 /proc/nk/resume
+    chmod 660 /proc/nk/restart
+    chmod 660 /proc/nk/guest-02/dsp_bank
+    chmod 660 /proc/nk/guest-02/guestOS_2_bank
+    chown system root /proc/nk/resume
+    chown system root /proc/nk/restart
+    chown system root /proc/nk/guest-02/dsp_bank
+    chown system root /proc/nk/guest-02/guestOS_2_bank
+
+    chown system system /sys/class/power_supply
+
+    chmod 666 /dev/ttyS0
+    chmod 660 /proc/bluetooth/sleep/proto
+    chmod 660 /sys/class/rfkill/rfkill0/state
+    chmod 660 /sys/class/rfkill/rfkill0/type
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/state
+    chown bluetooth bluetooth /sys/class/rfkill/rfkill0/type
+    chown bluetooth system /proc/bluetooth/sleep/proto
+    mkdir /data/misc/wifi/sockets 0770 wifi wifi
+    mkdir /data/system 0770 system system
+    mkdir /etc/wifi 0770 wifi wifi
+    mkdir /data/system/wpa_supplicant 0771 wifi wifi
+    mkdir /data/misc/dhcp 0770 dhcp dhcp
+    chown dhcp dhcp /data/misc/dhcp
+    setprop wifi.interface wlan0
+    chown system system /proc/sys/kernel/printk
+
+on property:ro.debuggable=1
+    mount debugfs debugfs /sys/kernel/debug
+
+on property:zram.support=true
+    setprop zram.disksize 64
+    setprop sys.vm.swappiness 100
+    start zram
+
+service zram /system/xbin/zram.sh
+        disabled
+        oneshot
+
+#service mfserial /system/bin/mfserial ts0710mux9 ttyS1 1
+#    class main
+#    user root
+
+service vcharged /bin/vcharged
+    class core
+    user system
+    group system
+    oneshot
+
+service charge /bin/charge
+    class charger
+    user root
+    oneshot
+
+#start nvitem daemon.
+service nvm_daemon /system/bin/nvm_daemon
+    class main
+    user root
+    group system radio shell
+    oneshot
+
+#telephony service
+service sprd_monitor /system/bin/sprd_monitor
+    class core
+    user system
+    group system radio shell
+    oneshot
+
+service modemd /system/bin/modemd
+    class main
+    user system
+    group system radio
+    oneshot
+
+service engpcclient /system/bin/engpcclient
+    class main
+    user system
+    group system shell
+    disabled
+    oneshot
+
+service setrfnvconfig /system/bin/logwrapper /system/bin/eng_rf_nv_config
+    class core
+    user root
+    oneshot
+
+service setrfnvupdate /system/bin/logwrapper /system/bin/eng_rf_nv_update
+    class core
+    user root
+    oneshot
+
+service engservice /system/bin/engservice
+    class main
+    user system
+    group system
+    disabled
+    oneshot
+
+service engmodemclient /system/bin/engmodemclient
+    class main
+    user system
+    group system radio
+    disabled
+    oneshot
+
+service engsetmacaddr /system/bin/engsetmacaddr
+    class main
+    user system
+    oneshot
+
+service phoneserver /system/bin/phoneserver
+    class core
+    user system
+    group system radio shell
+    disabled
+    oneshot
+
+service phoneserver_2sim /system/bin/phoneserver_2sim
+    class core
+    user system
+    group system radio shell
+    disabled
+    oneshot
+
+service calibrationinit /system/bin/calibration_init
+    class main
+    oneshot
+
+#rild service
+service ril-daemon /system/bin/rild_sp  -l /system/lib/libreference-ril_sp.so -- -n 0
+    class main
+    socket rild stream 660 root radio
+    socket rild-debug stream 660 radio system
+    user root
+    group radio cache inet misc audio sdcard_rw log
+
+service ril-daemon1 /system/bin/rild_sp  -l /system/lib/libreference-ril_sp.so -- -n 1
+    class main
+    socket rild1 stream 660 root radio
+    socket rild-debug1 stream 660 radio system
+    disabled
+    user root
+    group radio cache inet misc audio sdcard_rw log
+
+service rilproxy1 /system/bin/rilproxy -c 1
+    class main
+    socket rilproxy1 stream 660 root system
+    user root
+    group radio
+
+on property:persist.msms.phone_count=2
+    start ril-daemon1
+
+# create virtual SD card at /mnt/sdcard(hard code), based on the /data/media directory
+# daemon will drop to user/group system/media_rw after initializing
+# underlying files in /data/media will be created with user and group media_rw (1023)
+# conflict with externel SD card
+#service sdcard /system/bin/sdcard /data/media 1023 1023
+#    class late_start
+
+
+service hfag /system/bin/sdptool add --channel=10 HFAG
+    user bluetooth
+    group bluetooth net_bt_admin
+    disabled
+    oneshot
+
+service hsag /system/bin/sdptool add --channel=11 HSAG
+    user bluetooth
+    group bluetooth net_bt_admin
+    disabled
+    oneshot
+
+service opush /system/bin/sdptool add --channel=12 OPUSH
+    user bluetooth
+    group bluetooth net_bt_admin
+    disabled
+    oneshot
+
+service pbap /system/bin/sdptool add --channel=19 PBAP
+    user bluetooth
+    group bluetooth net_bt_admin
+    disabled
+    oneshot
+
+service trout_genpskey /system/bin/trout_genpskey
+    class main
+    user system
+    disabled
+    oneshot
+
+service hciattach /system/bin/hciattach -n /dev/ttyS0 bcsp 3000000 noflow
+    socket bluetooth stream 660 bluetooth bluetooth
+    user bluetooth
+    group wifi bluetooth net_bt_admin net_bt inet net_raw net_admin system
+    disabled
+    oneshot
+
+service wpa_supplicant /system/bin/wpa_supplicant \
+    -Dnl80211 -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf -dd
+    group system wifi inet keystore
+    socket wpa_wlan0 dgram 660 wifi wifi
+    class main
+    disabled
+    oneshot
+
+service dhcpcd_wlan0 /system/bin/dhcpcd -ABKL
+    group system dhcp
+    disabled
+    oneshot
+
+service dhcpcd_p2p /system/bin/dhcpcd -ABKL
+    group system dhcp
+    disabled
+    oneshot
+
+service iprenew_wlan0 /system/bin/dhcpcd -n
+    class main
+    group system dhcp
+    disabled
+    oneshot
+
+service iprenew_p2p /system/bin/dhcpcd -n
+    class main
+    group system dhcp
+    disabled
+    oneshot
+
+service slog /system/bin/slog
+    class main
+    user root
+
+service engmoded /system/bin/engmoded
+    class main
+    user root
+
+#create symlink
+service pty_symlink /system/bin/ext_symlink.sh -p
+    user root
+    disabled
+    oneshot
+
+service smd_symlink /system/bin/ext_symlink.sh -u
+    user root
+    disabled
+    oneshot
+
+#data on
+service data_on /system/bin/ext_data.sh  -u
+    user root
+    disabled
+    oneshot
+
+#data off
+service data_off /system/bin/ext_data.sh  -d
+    user root
+    disabled
+    oneshot
+
+#kill app
+service kill_phone /system/bin/ext_kill.sh  -m
+    user root
+    disabled
+    oneshot
+
+#change owner
+service chown_service /system/bin/ext_chown.sh  -c
+    class main
+    user root
+    oneshot
+
